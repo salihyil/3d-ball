@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { MutableRefObject, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { socket } from '../hooks/useNetwork';
-import type { GameSnapshot, PlayerState, Team } from '../types';
+import type { GameSnapshot, PlayerState } from '../types';
 import {
     BALL_RADIUS,
     FIELD_HEIGHT,
@@ -15,7 +15,7 @@ import {
 
 interface GameSceneProps {
   latestRef: MutableRefObject<GameSnapshot | null>;
-  myTeam: MutableRefObject<Team>;
+  room: import('../types').RoomInfo | null;
 }
 
 // ---- Colors ----
@@ -55,22 +55,38 @@ const ballMaterial = new THREE.MeshStandardMaterial({
   emissiveIntensity: 0.2,
 });
 
+const powerUpGeometry = new THREE.BoxGeometry(2, 2, 2);
+const powerUpMaterials = {
+  magnet: new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0xa855f7, emissiveIntensity: 0.5 }),
+  freeze: new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x38bdf8, emissiveIntensity: 0.5 }),
+  rocket: new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0xf97316, emissiveIntensity: 0.5 }),
+  frozen: new THREE.MeshStandardMaterial({ color: 0x87ceeb, emissive: 0x87ceeb, emissiveIntensity: 0.5, transparent: true, opacity: 0.5 }),
+} as Record<string, THREE.Material>;
+
+const auraGeometry = new THREE.TorusGeometry(PLAYER_RADIUS * 1.5, 0.2, 8, 24);
+
 // ---- Player Mesh Pool ----
 const MAX_POOL = 10;
 
-function PlayerPool({ latestRef, localPlayerPos }: { latestRef: MutableRefObject<GameSnapshot | null>, localPlayerPos: MutableRefObject<THREE.Vector3> }) {
+function PlayerPool({ latestRef, room, localPlayerPos }: { 
+  latestRef: MutableRefObject<GameSnapshot | null>;
+  room: import('../types').RoomInfo | null;
+  localPlayerPos: MutableRefObject<THREE.Vector3>;
+}) {
   const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(MAX_POOL).fill(null));
+  const nameRefs = useRef<(THREE.Group | null)[]>(Array(MAX_POOL).fill(null));
+  const textRefs = useRef<any[]>(Array(MAX_POOL).fill(null));
+  const auraRefs = useRef<(THREE.Mesh | null)[]>(Array(MAX_POOL).fill(null));
+  
   const targetPositions = useRef<THREE.Vector3[]>(
     Array.from({ length: MAX_POOL }, () => new THREE.Vector3())
   );
-  const nameRefs = useRef<(THREE.Group | null)[]>(Array(MAX_POOL).fill(null));
-  
   const targetVelocities = useRef<THREE.Vector3[]>(
     Array.from({ length: MAX_POOL }, () => new THREE.Vector3())
   );
   const lastTickRef = useRef<number>(-1);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const snapshot = latestRef.current;
     if (!snapshot) return;
 
@@ -114,11 +130,48 @@ function PlayerPool({ latestRef, localPlayerPos }: { latestRef: MutableRefObject
           nameGroup.visible = true;
           nameGroup.position.copy(mesh.position);
           nameGroup.position.y += PLAYER_RADIUS + 1.2;
+          
+          // Force text update if it changed
+          const troikaText = textRefs.current[i];
+          const nickname = room?.players.find(pl => pl.id === id)?.nickname || 'Player';
+          if (troikaText && troikaText.text !== nickname) {
+            troikaText.text = nickname;
+            if (troikaText.sync) troikaText.sync();
+          }
+          
+          // Make text always face the camera
+          nameGroup.quaternion.copy(state.camera.quaternion);
+        }
+
+        // Show active power-up aura
+        const aura = auraRefs.current[i];
+        if (aura) {
+          if (p.activePowerUp) {
+            aura.visible = true;
+            aura.position.copy(mesh.position);
+            
+            if (p.activePowerUp.type === 'frozen') {
+              // Show as an ice block around player
+              aura.geometry = powerUpGeometry; // 2x2x2 cube
+              aura.material = powerUpMaterials.frozen;
+              aura.rotation.x = 0; aura.rotation.y = 0; aura.rotation.z = 0;
+            } else {
+              aura.geometry = auraGeometry;
+              aura.material = powerUpMaterials[p.activePowerUp.type];
+              aura.position.y -= PLAYER_RADIUS * 0.5;
+              aura.rotation.x = Math.PI / 2;
+              aura.rotation.z = state.clock.getElapsedTime() * 5;
+            }
+          } else {
+            aura.visible = false;
+          }
         }
       } else {
         mesh.visible = false;
         const nameGroup = nameRefs.current[i];
         if (nameGroup) nameGroup.visible = false;
+        const aura = auraRefs.current[i];
+        if (aura) aura.visible = false;
       }
     }
   });
@@ -141,17 +194,68 @@ function PlayerPool({ latestRef, localPlayerPos }: { latestRef: MutableRefObject
           />
           <group ref={(r) => { nameRefs.current[i] = r; }} visible={false}>
             <Text
-              fontSize={0.7}
+              ref={(r) => { textRefs.current[i] = r; }}
+              fontSize={0.8}
               color="white"
               anchorX="center"
               anchorY="bottom"
               outlineColor="black"
               outlineWidth={0.05}
+              font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.ttf"
+              fontWeight={800}
             >
               {' '}
             </Text>
           </group>
+          <mesh 
+            ref={(r) => { auraRefs.current[i] = r; }}
+            visible={false}
+          />
         </group>
+      ))}
+    </>
+  );
+}
+
+// ---- PowerUps ----
+const MAX_POWERUPS = 5;
+
+function PowerUpPool({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> }) {
+  const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(MAX_POWERUPS).fill(null));
+  
+  useFrame((state) => {
+    const snapshot = latestRef.current;
+    if (!snapshot || !snapshot.powerUps) return;
+
+    const items = snapshot.powerUps;
+    const time = state.clock.getElapsedTime();
+
+    for (let i = 0; i < MAX_POWERUPS; i++) {
+      const mesh = meshRefs.current[i];
+      if (!mesh) continue;
+
+      if (i < items.length) {
+        mesh.visible = true;
+        mesh.position.set(items[i].position.x, items[i].position.y + Math.sin(time * 3 + i) * 0.5, items[i].position.z);
+        mesh.rotation.x = time + i;
+        mesh.rotation.y = time + i;
+        mesh.material = powerUpMaterials[items[i].type];
+      } else {
+        mesh.visible = false;
+      }
+    }
+  });
+
+  return (
+    <>
+      {Array.from({ length: MAX_POWERUPS }, (_, i) => (
+        <mesh
+          key={i}
+          ref={(r) => { meshRefs.current[i] = r; }}
+          geometry={powerUpGeometry}
+          castShadow
+          visible={false}
+        />
       ))}
     </>
   );
@@ -410,8 +514,8 @@ function Field() {
 }
 
 // ---- Main Scene ----
-export default function GameScene({ latestRef, myTeam }: GameSceneProps) {
-  const localPlayerPos = useRef(new THREE.Vector3());
+export default function GameScene({ latestRef, room }: GameSceneProps) {
+  const localPlayerPos = useRef(new THREE.Vector3(0, 0, 0));
 
   return (
     <>
@@ -439,7 +543,10 @@ export default function GameScene({ latestRef, myTeam }: GameSceneProps) {
       <Field />
 
       {/* Players */}
-      <PlayerPool latestRef={latestRef} localPlayerPos={localPlayerPos} />
+      <PlayerPool latestRef={latestRef} room={room} localPlayerPos={localPlayerPos} />
+
+      {/* PowerUps */}
+      <PowerUpPool latestRef={latestRef} />
 
       {/* Ball */}
       <Ball latestRef={latestRef} />

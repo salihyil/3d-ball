@@ -4,17 +4,18 @@ export interface InputState {
   dx: number;
   dz: number;
   boost: boolean;
+  jump: boolean;
 }
 
 export function useGameInput() {
   const keysRef = useRef<Set<string>>(new Set());
-  const inputRef = useRef<InputState>({ dx: 0, dz: 0, boost: false });
+  const inputRef = useRef<InputState>({ dx: 0, dz: 0, boost: false, jump: false });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysRef.current.add(e.key.toLowerCase());
       // Prevent page scroll
-      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) {
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(e.key.toLowerCase())) {
         e.preventDefault();
       }
     };
@@ -56,9 +57,10 @@ export function useGameInput() {
       dz /= len;
     }
 
-    const boost = keys.has(' ');
+    const boost = keys.has('shift');
+    const jump = keys.has(' ');
 
-    inputRef.current = { dx, dz, boost };
+    inputRef.current = { dx, dz, boost, jump };
     return inputRef.current;
   }, []);
 

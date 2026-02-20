@@ -18,12 +18,24 @@ export interface PlayerInfo {
   isHost: boolean;
 }
 
+export type PowerUpType = 'magnet' | 'freeze' | 'rocket' | 'frozen';
+
+export interface PowerUpItem {
+  id: string;
+  position: Vec3;
+  type: PowerUpType;
+}
+
 export interface PlayerState {
   id: string;
   position: Vec3;
   velocity: Vec3;
   boostCooldown: number;
   team: Team;
+  activePowerUp?: {
+    type: PowerUpType;
+    timeLeft: number;
+  };
 }
 
 export interface BallState {
@@ -39,6 +51,7 @@ export interface GameSnapshot {
   gameState: GameState;
   tick: number;
   countdown?: number;
+  powerUps: PowerUpItem[];
 }
 
 export interface RoomInfo {
@@ -53,6 +66,7 @@ export interface PlayerInput {
   dx: number;     // -1 to 1
   dz: number;     // -1 to 1
   boost: boolean;
+  jump: boolean;  // added jump
   seq: number;    // sequence number for reconciliation
 }
 

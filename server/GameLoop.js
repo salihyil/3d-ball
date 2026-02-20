@@ -19,6 +19,11 @@ const WALL_BOUNCE = 0.6;
 const PLAYER_BOUNCE = 0.3;
 const TICK_RATE = 30;
 const DT = 1 / TICK_RATE;
+const GRAVITY = -40;
+const JUMP_FORCE = 20;
+
+const POWERUP_SPAWN_INTERVAL = 10;
+const POWERUP_RADIUS = 1.5;
 
 export class GameLoop {
   constructor(room, playerData) {
@@ -50,6 +55,10 @@ export class GameLoop {
       velocity: { x: 0, y: 0, z: 0 },
     };
 
+    // Powerups
+    this.powerUps = [];
+    this.powerUpSpawnTimer = 0;
+
     // Previous snapshot for delta compression
     this.prevSnapshot = null;
   }
@@ -70,7 +79,7 @@ export class GameLoop {
         boostRemaining: 0,
         boostCooldown: 0,
       };
-      this.inputs[ids[i]] = { dx: 0, dz: 0, boost: false, seq: 0 };
+      this.inputs[ids[i]] = { dx: 0, dz: 0, boost: false, jump: false, seq: 0 };
     }
   }
 
@@ -100,6 +109,7 @@ export class GameLoop {
       dx: Math.max(-1, Math.min(1, input.dx || 0)),
       dz: Math.max(-1, Math.min(1, input.dz || 0)),
       boost: !!input.boost,
+      jump: !!input.jump,
       seq: input.seq || 0,
     };
   }
@@ -123,7 +133,7 @@ export class GameLoop {
       boostRemaining: 0,
       boostCooldown: 0,
     };
-    this.inputs[socketId] = { dx: 0, dz: 0, boost: false, seq: 0 };
+    this.inputs[socketId] = { dx: 0, dz: 0, boost: false, jump: false, seq: 0 };
   }
 
   resetPositions() {
@@ -139,7 +149,7 @@ export class GameLoop {
     for (const id of [...blueTeam, ...redTeam]) {
       const team = this.players[id].team;
       delete this.players[id];
-      this.inputs[id] = { dx: 0, dz: 0, boost: false, seq: 0 };
+      this.inputs[id] = { dx: 0, dz: 0, boost: false, jump: false, seq: 0 };
     }
 
     this._spawnPlayers(blueTeam, 'blue');
@@ -148,6 +158,9 @@ export class GameLoop {
     // Reset ball
     this.ball.position = { x: 0, y: BALL_RADIUS, z: 0 };
     this.ball.velocity = { x: 0, y: 0, z: 0 };
+
+    this.powerUps = [];
+    this.powerUpSpawnTimer = 0;
   }
 
   removePlayer(id) {
@@ -180,6 +193,15 @@ export class GameLoop {
 
     if (timeRemaining <= 0) return;
 
+    // Powerups
+    this.powerUpSpawnTimer += DT;
+    if (this.powerUpSpawnTimer >= POWERUP_SPAWN_INTERVAL && Object.keys(this.players).length > 0) {
+      if (this.powerUps.length < 3) {
+        this._spawnPowerUp();
+      }
+      this.powerUpSpawnTimer = 0;
+    }
+
     // 1. Apply player inputs
     this._updatePlayers();
 
@@ -189,6 +211,7 @@ export class GameLoop {
     // 3. Check collisions
     this._checkPlayerBallCollisions();
     this._checkPlayerPlayerCollisions();
+    this._checkPlayerPowerUpCollisions();
 
     // 4. Check goals
     this._checkGoals();
@@ -199,6 +222,22 @@ export class GameLoop {
 
   _updatePlayers() {
     for (const [id, player] of Object.entries(this.players)) {
+      // Handle active power up timers
+      if (player.activePowerUp) {
+        player.activePowerUp.timeLeft -= DT;
+        if (player.activePowerUp.timeLeft <= 0) {
+          player.activePowerUp = null;
+        }
+      }
+
+      // Check for being frozen
+      if (player.activePowerUp && player.activePowerUp.type === 'frozen') {
+        player.velocity.x = 0;
+        player.velocity.y = 0;
+        player.velocity.z = 0;
+        continue;
+      }
+
       const input = this.inputs[id];
       if (!input) continue;
 
@@ -232,8 +271,33 @@ export class GameLoop {
       player.velocity.x = dx * speed;
       player.velocity.z = dz * speed;
 
+      // Jump and Gravity
+      const isGrounded = player.position.y <= PLAYER_RADIUS + 0.01;
+      if (isGrounded) {
+        player.position.y = PLAYER_RADIUS;
+        player.velocity.y = 0;
+        
+        if (input.jump && !player.jumpProcessed) {
+          player.velocity.y = JUMP_FORCE;
+          player.jumpProcessed = true;
+        }
+      }
+      
+      if (!input.jump) {
+        player.jumpProcessed = false;
+      }
+
+      player.velocity.y += GRAVITY * DT;
+
       player.position.x += player.velocity.x * DT;
+      player.position.y += player.velocity.y * DT;
       player.position.z += player.velocity.z * DT;
+
+      // Floor collision checks for Y
+      if (player.position.y < PLAYER_RADIUS) {
+        player.position.y = PLAYER_RADIUS;
+        player.velocity.y = 0;
+      }
 
       // Clamp to field bounds
       const fieldXBounds = FIELD_WIDTH / 2 - PLAYER_RADIUS;
@@ -274,23 +338,55 @@ export class GameLoop {
 
     // Clamp speed
     const speed = Math.sqrt(
-      this.ball.velocity.x ** 2 + this.ball.velocity.z ** 2
+      this.ball.velocity.x ** 2 + this.ball.velocity.y ** 2 + this.ball.velocity.z ** 2
     );
     if (speed > BALL_MAX_SPEED) {
       const scale = BALL_MAX_SPEED / speed;
       this.ball.velocity.x *= scale;
+      this.ball.velocity.y *= scale;
       this.ball.velocity.z *= scale;
     }
 
     // Stop very slow ball
-    if (speed < 0.1) {
+    if (speed < 0.1 && this.ball.position.y <= BALL_RADIUS + 0.05) {
       this.ball.velocity.x = 0;
+      this.ball.velocity.y = 0;
       this.ball.velocity.z = 0;
+    }
+
+    // Apply gravity
+    this.ball.velocity.y += GRAVITY * DT;
+
+    // Apply magnet pull
+    for (const [id, player] of Object.entries(this.players)) {
+      if (player.activePowerUp && player.activePowerUp.type === 'magnet') {
+         const dx = player.position.x - this.ball.position.x;
+         const dy = player.position.y - this.ball.position.y;
+         const dz = player.position.z - this.ball.position.z;
+         const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+         if (dist < 30) {
+            const pullForce = 40;
+            this.ball.velocity.x += (dx/dist) * pullForce * DT;
+            this.ball.velocity.y += (dy/dist) * pullForce * DT;
+            this.ball.velocity.z += (dz/dist) * pullForce * DT;
+         }
+      }
     }
 
     // Move ball
     this.ball.position.x += this.ball.velocity.x * DT;
+    this.ball.position.y += this.ball.velocity.y * DT;
     this.ball.position.z += this.ball.velocity.z * DT;
+
+    // Floor collision
+    if (this.ball.position.y < BALL_RADIUS) {
+      this.ball.position.y = BALL_RADIUS;
+      this.ball.velocity.y *= -WALL_BOUNCE;
+      
+      if (Math.abs(this.ball.velocity.y) < 2) {
+        this.ball.velocity.y = 0;
+      }
+    }
 
     // Wall collisions (top/bottom)
     const halfH = FIELD_HEIGHT / 2 - BALL_RADIUS;
@@ -302,16 +398,26 @@ export class GameLoop {
       this.ball.velocity.z *= -WALL_BOUNCE;
     }
 
+    const CEILING = 30;
+    if (this.ball.position.y > CEILING - BALL_RADIUS) {
+      this.ball.position.y = CEILING - BALL_RADIUS;
+      this.ball.velocity.y *= -WALL_BOUNCE;
+    }
+
     // Wall collisions (left/right — considering goal area)
     const fieldXBounds = FIELD_WIDTH / 2 - BALL_RADIUS;
     const goalZBounds = GOAL_WIDTH / 2 - BALL_RADIUS;
     const maxGoalX = FIELD_WIDTH / 2 + GOAL_DEPTH - BALL_RADIUS;
+    const GOAL_HEIGHT = 10; // New crossbar height
 
     if (Math.abs(this.ball.position.x) > fieldXBounds) {
-      if (Math.abs(this.ball.position.z) > goalZBounds) {
-        // Hit front wall or side net
+      if (Math.abs(this.ball.position.z) > goalZBounds || this.ball.position.y > GOAL_HEIGHT) {
+        // Hit front wall (above goal too) or side net
         const xPen = Math.abs(this.ball.position.x) - fieldXBounds;
-        const zPen = Math.abs(this.ball.position.z) - goalZBounds;
+        let zPen = Math.abs(this.ball.position.z) - goalZBounds;
+        if (Math.abs(this.ball.position.z) <= goalZBounds) {
+            zPen = Infinity; // We are above the goal, so we must be hitting the front wall, not side net
+        }
         
         if (xPen > zPen) {
           // Bounced off side net
@@ -328,38 +434,53 @@ export class GameLoop {
           this.ball.position.x = Math.sign(this.ball.position.x) * maxGoalX;
           this.ball.velocity.x *= -WALL_BOUNCE;
         }
+        // Check goal inner ceiling
+        if (this.ball.position.y > GOAL_HEIGHT - BALL_RADIUS) {
+          this.ball.position.y = GOAL_HEIGHT - BALL_RADIUS;
+          this.ball.velocity.y *= -WALL_BOUNCE;
+        }
       }
     }
   }
 
   _checkPlayerBallCollisions() {
     const bx = this.ball.position.x;
+    const by = this.ball.position.y;
     const bz = this.ball.position.z;
     let closestPlayerId = null;
     let closestDist = Infinity;
 
     for (const [id, player] of Object.entries(this.players)) {
       const dx = bx - player.position.x;
+      const dy = by - player.position.y;
       const dz = bz - player.position.z;
-      const dist = Math.sqrt(dx * dx + dz * dz);
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       const minDist = PLAYER_RADIUS + BALL_RADIUS;
 
       if (dist < minDist && dist > 0.001) {
         // Separate ball from player
         const overlap = minDist - dist;
         const nx = dx / dist;
+        const ny = dy / dist;
         const nz = dz / dist;
 
         this.ball.position.x += nx * overlap;
+        this.ball.position.y += ny * overlap;
         this.ball.position.z += nz * overlap;
 
         // Calculate kick force based on player velocity
         const playerSpeed = Math.sqrt(
-          player.velocity.x ** 2 + player.velocity.z ** 2
+          player.velocity.x ** 2 + player.velocity.y ** 2 + player.velocity.z ** 2
         );
-        const force = KICK_FORCE + playerSpeed * 0.8;
+        let multiplier = 1;
+        if (player.activePowerUp && player.activePowerUp.type === 'rocket') {
+           multiplier = 2.5; // Super powerful kick
+           player.activePowerUp = null; // consume
+        }
+        const force = (KICK_FORCE + playerSpeed * 0.8) * multiplier;
 
         this.ball.velocity.x = nx * force;
+        this.ball.velocity.y = ny * force + (Math.abs(player.velocity.y) > 0 ? 0 : 5); // Add a small pop up if grounded hit
         this.ball.velocity.z = nz * force;
 
         // Track closest for goal attribution
@@ -383,30 +504,67 @@ export class GameLoop {
         const b = this.players[ids[j]];
 
         const dx = b.position.x - a.position.x;
+        const dy = b.position.y - a.position.y;
         const dz = b.position.z - a.position.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         const minDist = PLAYER_RADIUS * 2;
 
         if (dist < minDist && dist > 0.001) {
           const overlap = (minDist - dist) / 2;
           const nx = dx / dist;
+          const ny = dy / dist;
           const nz = dz / dist;
 
           a.position.x -= nx * overlap;
+          a.position.y -= ny * overlap;
           a.position.z -= nz * overlap;
           b.position.x += nx * overlap;
+          b.position.y += ny * overlap;
           b.position.z += nz * overlap;
 
           // Bounce velocities
           const dvx = a.velocity.x - b.velocity.x;
+          const dvy = a.velocity.y - b.velocity.y;
           const dvz = a.velocity.z - b.velocity.z;
-          const dot = dvx * nx + dvz * nz;
+          const dot = dvx * nx + dvy * ny + dvz * nz;
 
           if (dot > 0) {
             a.velocity.x -= dot * nx * PLAYER_BOUNCE;
+            a.velocity.y -= dot * ny * PLAYER_BOUNCE;
             a.velocity.z -= dot * nz * PLAYER_BOUNCE;
             b.velocity.x += dot * nx * PLAYER_BOUNCE;
+            b.velocity.y += dot * ny * PLAYER_BOUNCE;
             b.velocity.z += dot * nz * PLAYER_BOUNCE;
+          }
+        }
+      }
+    }
+  }
+
+  _checkPlayerPowerUpCollisions() {
+    for (const [id, player] of Object.entries(this.players)) {
+      for (let i = this.powerUps.length - 1; i >= 0; i--) {
+        const pu = this.powerUps[i];
+        const dx = pu.position.x - player.position.x;
+        const dy = pu.position.y - player.position.y;
+        const dz = pu.position.z - player.position.z;
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        const minDist = PLAYER_RADIUS + POWERUP_RADIUS;
+
+        if (dist < minDist) {
+          const type = pu.type;
+          this.powerUps.splice(i, 1);
+
+          if (type === 'freeze') {
+             for (const [otherId, other] of Object.entries(this.players)) {
+                if (other.team !== player.team) {
+                   other.activePowerUp = { type: 'frozen', timeLeft: 3 };
+                }
+             }
+          } else if (type === 'magnet') {
+             player.activePowerUp = { type: 'magnet', timeLeft: 5 };
+          } else if (type === 'rocket') {
+             player.activePowerUp = { type: 'rocket', timeLeft: 8 };
           }
         }
       }
@@ -422,13 +580,13 @@ export class GameLoop {
     const bz = this.ball.position.z;
 
     // Goal in blue side (left, x < -halfW) → red scores
-    if (bx < -halfW && Math.abs(bz) < goalHalf) {
+    if (bx < -halfW && Math.abs(bz) < goalHalf && this.ball.position.y < 10) {
       this.room.onGoalScored('red', this._lastToucher);
       return;
     }
 
     // Goal in red side (right, x > halfW) → blue scores
-    if (bx > halfW && Math.abs(bz) < goalHalf) {
+    if (bx > halfW && Math.abs(bz) < goalHalf && this.ball.position.y < 10) {
       this.room.onGoalScored('blue', this._lastToucher);
       return;
     }
@@ -443,6 +601,7 @@ export class GameLoop {
         velocity: { ...p.velocity },
         boostCooldown: Math.max(0, p.boostCooldown),
         team: p.team,
+        activePowerUp: p.activePowerUp,
       };
     }
 
@@ -457,8 +616,25 @@ export class GameLoop {
       timeRemaining: this.room.timeRemaining,
       gameState: this.room.gameState,
       countdown, // Sent during exactly the 'countdown' state
+      powerUps: this.powerUps.map(p => ({ ...p })),
     };
 
     this.room.broadcastSnapshot(snapshot);
+  }
+
+  _spawnPowerUp() {
+    const types = ['magnet', 'freeze', 'rocket'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    
+    // Random position avoiding edges and goals
+    const side = Math.random() < 0.5 ? 1 : -1;
+    const x = side * (Math.random() * (FIELD_WIDTH/2 - 10));
+    const z = (Math.random() - 0.5) * (FIELD_HEIGHT - 10);
+    
+    this.powerUps.push({
+      id: `pu_${Date.now()}_${Math.random()}`,
+      position: { x, y: 1.5, z },
+      type
+    });
   }
 }
