@@ -5,7 +5,9 @@ import GameScene from "../components/GameScene";
 import MiniMap from "../components/MiniMap";
 import { useGameInput } from "../hooks/useGameInput";
 import { socket, usePing, useSnapshotBuffer } from "../hooks/useNetwork";
+import { useSoundSettings } from "../hooks/useSoundSettings";
 import type { GameSnapshot, RoomInfo, Team } from "../types";
+import { AudioManager } from "../utils/AudioManager";
 
 export default function Game() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -35,6 +37,7 @@ export default function Game() {
   const [ping, setPing] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [hostLeft, setHostLeft] = useState(false);
+  const { isSoundEnabled, toggleSound } = useSoundSettings();
 
   // My team (from session)
   const myTeam = useRef<Team>("blue");
@@ -96,7 +99,7 @@ export default function Game() {
         setCountdown(snapshot.countdown);
       }
 
-      // Update my boost cooldown, powerup, speed and team identity
+      // Detect powerup pickup
       const myState = snapshot.players[socket.id!];
       if (myState) {
         setBoostCooldown(myState.boostCooldown);
@@ -117,6 +120,7 @@ export default function Game() {
     }) => {
       setGoalInfo(data);
       setScore(data.score);
+      AudioManager.playGoal();
       setTimeout(() => setGoalInfo(null), 2000);
     };
 
@@ -276,6 +280,14 @@ export default function Game() {
         </div>
 
         <div className="hud-ping">{ping}ms</div>
+
+        <button
+          className="hud-sound-toggle"
+          onClick={toggleSound}
+          title="Toggle Sound">
+          {" "}
+          {isSoundEnabled ? "🔊" : "🔇"}
+        </button>
 
         {/* MiniMap */}
         <div className="hud-minimap-wrapper">

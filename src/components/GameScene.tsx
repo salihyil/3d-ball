@@ -1,21 +1,22 @@
-import { Text } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
-import { MutableRefObject, useMemo, useRef } from 'react';
-import * as THREE from 'three';
-import { socket } from '../hooks/useNetwork';
-import type { GameSnapshot, PlayerState } from '../types';
+import { Text } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
+import { MutableRefObject, useMemo, useRef } from "react";
+import * as THREE from "three";
+import { socket } from "../hooks/useNetwork";
+import type { GameSnapshot, PlayerState } from "../types";
 import {
-    BALL_RADIUS,
-    FIELD_HEIGHT,
-    FIELD_WIDTH,
-    GOAL_DEPTH,
-    GOAL_WIDTH,
-    PLAYER_RADIUS,
-} from '../types';
+  BALL_RADIUS,
+  FIELD_HEIGHT,
+  FIELD_WIDTH,
+  GOAL_DEPTH,
+  GOAL_WIDTH,
+  PLAYER_RADIUS,
+} from "../types";
+import { AudioManager } from "../utils/AudioManager";
 
 interface GameSceneProps {
   latestRef: MutableRefObject<GameSnapshot | null>;
-  room: import('../types').RoomInfo | null;
+  room: import("../types").RoomInfo | null;
 }
 
 // ---- Colors ----
@@ -57,10 +58,28 @@ const ballMaterial = new THREE.MeshStandardMaterial({
 
 const powerUpGeometry = new THREE.BoxGeometry(2, 2, 2);
 const powerUpMaterials = {
-  magnet: new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0xa855f7, emissiveIntensity: 0.5 }),
-  freeze: new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x38bdf8, emissiveIntensity: 0.5 }),
-  rocket: new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0xf97316, emissiveIntensity: 0.5 }),
-  frozen: new THREE.MeshStandardMaterial({ color: 0x87ceeb, emissive: 0x87ceeb, emissiveIntensity: 0.5, transparent: true, opacity: 0.5 }),
+  magnet: new THREE.MeshStandardMaterial({
+    color: 0xa855f7,
+    emissive: 0xa855f7,
+    emissiveIntensity: 0.5,
+  }),
+  freeze: new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 0.5,
+  }),
+  rocket: new THREE.MeshStandardMaterial({
+    color: 0xf97316,
+    emissive: 0xf97316,
+    emissiveIntensity: 0.5,
+  }),
+  frozen: new THREE.MeshStandardMaterial({
+    color: 0x87ceeb,
+    emissive: 0x87ceeb,
+    emissiveIntensity: 0.5,
+    transparent: true,
+    opacity: 0.5,
+  }),
 } as Record<string, THREE.Material>;
 
 const auraGeometry = new THREE.TorusGeometry(PLAYER_RADIUS * 1.5, 0.2, 8, 24);
@@ -68,21 +87,25 @@ const auraGeometry = new THREE.TorusGeometry(PLAYER_RADIUS * 1.5, 0.2, 8, 24);
 // ---- Player Mesh Pool ----
 const MAX_POOL = 10;
 
-function PlayerPool({ latestRef, room, localPlayerPos }: { 
+function PlayerPool({
+  latestRef,
+  room,
+  localPlayerPos,
+}: {
   latestRef: MutableRefObject<GameSnapshot | null>;
-  room: import('../types').RoomInfo | null;
+  room: import("../types").RoomInfo | null;
   localPlayerPos: MutableRefObject<THREE.Vector3>;
 }) {
   const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(MAX_POOL).fill(null));
   const nameRefs = useRef<(THREE.Group | null)[]>(Array(MAX_POOL).fill(null));
   const textRefs = useRef<any[]>(Array(MAX_POOL).fill(null));
   const auraRefs = useRef<(THREE.Mesh | null)[]>(Array(MAX_POOL).fill(null));
-  
+
   const targetPositions = useRef<THREE.Vector3[]>(
-    Array.from({ length: MAX_POOL }, () => new THREE.Vector3())
+    Array.from({ length: MAX_POOL }, () => new THREE.Vector3()),
   );
   const targetVelocities = useRef<THREE.Vector3[]>(
-    Array.from({ length: MAX_POOL }, () => new THREE.Vector3())
+    Array.from({ length: MAX_POOL }, () => new THREE.Vector3()),
   );
   const lastTickRef = useRef<number>(-1);
 
@@ -106,7 +129,7 @@ function PlayerPool({ latestRef, room, localPlayerPos }: {
         mesh.visible = true;
 
         // Set correct material based on team from snapshot
-        mesh.material = p.team === 'red' ? redMaterial : blueMaterial;
+        mesh.material = p.team === "red" ? redMaterial : blueMaterial;
 
         if (isNewTick) {
           // Authoritative update from server
@@ -130,15 +153,15 @@ function PlayerPool({ latestRef, room, localPlayerPos }: {
           nameGroup.visible = true;
           nameGroup.position.copy(mesh.position);
           nameGroup.position.y += PLAYER_RADIUS + 1.2;
-          
+
           // Force text update if it changed
           const troikaText = textRefs.current[i];
-          const nickname = room?.players.find(pl => pl.id === id)?.nickname || 'Player';
+          const nickname = room?.players.find((pl) => pl.id === id)?.nickname || "Player";
           if (troikaText && troikaText.text !== nickname) {
             troikaText.text = nickname;
             if (troikaText.sync) troikaText.sync();
           }
-          
+
           // Make text always face the camera
           nameGroup.quaternion.copy(state.camera.quaternion);
         }
@@ -149,12 +172,14 @@ function PlayerPool({ latestRef, room, localPlayerPos }: {
           if (p.activePowerUp) {
             aura.visible = true;
             aura.position.copy(mesh.position);
-            
-            if (p.activePowerUp.type === 'frozen') {
+
+            if (p.activePowerUp.type === "frozen") {
               // Show as an ice block around player
               aura.geometry = powerUpGeometry; // 2x2x2 cube
               aura.material = powerUpMaterials.frozen;
-              aura.rotation.x = 0; aura.rotation.y = 0; aura.rotation.z = 0;
+              aura.rotation.x = 0;
+              aura.rotation.y = 0;
+              aura.rotation.z = 0;
             } else {
               aura.geometry = auraGeometry;
               aura.material = powerUpMaterials[p.activePowerUp.type];
@@ -178,7 +203,7 @@ function PlayerPool({ latestRef, room, localPlayerPos }: {
 
   // We need room info to know teams. We'll determine from snapshot + socket
   // Since we don't have team info in PlayerState, we track it from the initial room info
-  // For simplicity, blue players have even index, red have odd... 
+  // For simplicity, blue players have even index, red have odd...
   // Actually, let's use a different approach — get team from Room info stored client-side
 
   return (
@@ -186,15 +211,23 @@ function PlayerPool({ latestRef, room, localPlayerPos }: {
       {Array.from({ length: MAX_POOL }, (_, i) => (
         <group key={i}>
           <mesh
-            ref={(r) => { meshRefs.current[i] = r; }}
+            ref={(r) => {
+              meshRefs.current[i] = r;
+            }}
             geometry={playerGeometry}
             material={i < 5 ? blueMaterial : redMaterial}
             castShadow
             visible={false}
           />
-          <group ref={(r) => { nameRefs.current[i] = r; }} visible={false}>
+          <group
+            ref={(r) => {
+              nameRefs.current[i] = r;
+            }}
+            visible={false}>
             <Text
-              ref={(r) => { textRefs.current[i] = r; }}
+              ref={(r) => {
+                textRefs.current[i] = r;
+              }}
               fontSize={0.8}
               color="white"
               anchorX="center"
@@ -202,13 +235,14 @@ function PlayerPool({ latestRef, room, localPlayerPos }: {
               outlineColor="black"
               outlineWidth={0.05}
               font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.ttf"
-              fontWeight={800}
-            >
-              {' '}
+              fontWeight={800}>
+              {" "}
             </Text>
           </group>
-          <mesh 
-            ref={(r) => { auraRefs.current[i] = r; }}
+          <mesh
+            ref={(r) => {
+              auraRefs.current[i] = r;
+            }}
             visible={false}
           />
         </group>
@@ -222,7 +256,7 @@ const MAX_POWERUPS = 5;
 
 function PowerUpPool({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> }) {
   const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(MAX_POWERUPS).fill(null));
-  
+
   useFrame((state) => {
     const snapshot = latestRef.current;
     if (!snapshot || !snapshot.powerUps) return;
@@ -236,7 +270,11 @@ function PowerUpPool({ latestRef }: { latestRef: MutableRefObject<GameSnapshot |
 
       if (i < items.length) {
         mesh.visible = true;
-        mesh.position.set(items[i].position.x, items[i].position.y + Math.sin(time * 3 + i) * 0.5, items[i].position.z);
+        mesh.position.set(
+          items[i].position.x,
+          items[i].position.y + Math.sin(time * 3 + i) * 0.5,
+          items[i].position.z,
+        );
         mesh.rotation.x = time + i;
         mesh.rotation.y = time + i;
         mesh.material = powerUpMaterials[items[i].type];
@@ -251,7 +289,9 @@ function PowerUpPool({ latestRef }: { latestRef: MutableRefObject<GameSnapshot |
       {Array.from({ length: MAX_POWERUPS }, (_, i) => (
         <mesh
           key={i}
-          ref={(r) => { meshRefs.current[i] = r; }}
+          ref={(r) => {
+            meshRefs.current[i] = r;
+          }}
           geometry={powerUpGeometry}
           castShadow
           visible={false}
@@ -274,7 +314,7 @@ function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> 
   const trailIndex = useRef(0);
   const trailGeo = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(30 * 3), 3));
+    geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(30 * 3), 3));
     return geo;
   }, []);
 
@@ -284,11 +324,38 @@ function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> 
 
     const isNewTick = snapshot.tick !== lastTickRef.current;
     if (isNewTick) {
+      // Check for abrupt velocity change (kick or bounce)
+      if (lastTickRef.current !== -1) {
+        const dvx = snapshot.ball.velocity.x - targetVel.current.x;
+        const dvz = snapshot.ball.velocity.z - targetVel.current.z;
+        const deltaVMagSq = dvx * dvx + dvz * dvz;
+
+        if (deltaVMagSq > 50) {
+          const newMagSq = snapshot.ball.velocity.x ** 2 + snapshot.ball.velocity.z ** 2;
+          const prevMagSq = targetVel.current.x ** 2 + targetVel.current.z ** 2;
+          const intensity = Math.min(1, Math.sqrt(newMagSq) / 40);
+
+          if (newMagSq > prevMagSq + 20) {
+            AudioManager.playKick(intensity);
+          } else {
+            AudioManager.playBounce(intensity);
+          }
+        }
+      }
+
       lastTickRef.current = snapshot.tick;
-      
+
       // Authoritative update
-      targetPos.current.set(snapshot.ball.position.x, snapshot.ball.position.y, snapshot.ball.position.z);
-      targetVel.current.set(snapshot.ball.velocity.x, snapshot.ball.velocity.y, snapshot.ball.velocity.z);
+      targetPos.current.set(
+        snapshot.ball.position.x,
+        snapshot.ball.position.y,
+        snapshot.ball.position.z,
+      );
+      targetVel.current.set(
+        snapshot.ball.velocity.x,
+        snapshot.ball.velocity.y,
+        snapshot.ball.velocity.z,
+      );
     } else {
       // Extrapolate
       targetPos.current.addScaledVector(targetVel.current, delta);
@@ -313,7 +380,7 @@ function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> 
       pos[idx + 2] = meshRef.current.position.z;
       trailIndex.current++;
 
-      const attr = trailGeo.getAttribute('position') as THREE.BufferAttribute;
+      const attr = trailGeo.getAttribute("position") as THREE.BufferAttribute;
       attr.array = pos;
       attr.needsUpdate = true;
     }
@@ -321,16 +388,36 @@ function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> 
 
   return (
     <>
-      <mesh ref={meshRef} geometry={ballGeometry} material={ballMaterial} castShadow position={[0, BALL_RADIUS, 0]} />
-      <points ref={trailRef} geometry={trailGeo}>
-        <pointsMaterial color={0xffffff} size={0.3} transparent opacity={0.3} sizeAttenuation />
+      <mesh
+        ref={meshRef}
+        geometry={ballGeometry}
+        material={ballMaterial}
+        castShadow
+        position={[0, BALL_RADIUS, 0]}
+      />
+      <points
+        ref={trailRef}
+        geometry={trailGeo}>
+        <pointsMaterial
+          color={0xffffff}
+          size={0.3}
+          transparent
+          opacity={0.3}
+          sizeAttenuation
+        />
       </points>
     </>
   );
 }
 
 // ---- Camera Follow ----
-function CameraFollow({ latestRef, localPlayerPos }: { latestRef: MutableRefObject<GameSnapshot | null>, localPlayerPos: MutableRefObject<THREE.Vector3> }) {
+function CameraFollow({
+  latestRef,
+  localPlayerPos,
+}: {
+  latestRef: MutableRefObject<GameSnapshot | null>;
+  localPlayerPos: MutableRefObject<THREE.Vector3>;
+}) {
   const offset = useRef(new THREE.Vector3(0, 25, 30));
   const targetPos = useRef(new THREE.Vector3());
   const lookTarget = useRef(new THREE.Vector3());
@@ -344,16 +431,12 @@ function CameraFollow({ latestRef, localPlayerPos }: { latestRef: MutableRefObje
       targetPos.current.set(
         localPlayerPos.current.x + offset.current.x,
         offset.current.y,
-        localPlayerPos.current.z + offset.current.z
+        localPlayerPos.current.z + offset.current.z,
       );
       lookTarget.current.set(localPlayerPos.current.x, 0, localPlayerPos.current.z);
     } else {
       // Spectator: look at ball
-      targetPos.current.set(
-        snapshot.ball.position.x,
-        35,
-        snapshot.ball.position.z + 35
-      );
+      targetPos.current.set(snapshot.ball.position.x, 35, snapshot.ball.position.z + 35);
       lookTarget.current.set(snapshot.ball.position.x, 0, snapshot.ball.position.z);
     }
 
@@ -373,52 +456,77 @@ function Field() {
   return (
     <group>
       {/* Ground plane */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0, 0]}
+        receiveShadow>
         <planeGeometry args={[FIELD_WIDTH + 10, FIELD_HEIGHT + 10]} />
-        <meshStandardMaterial color={FIELD_COLOR} roughness={0.9} />
+        <meshStandardMaterial
+          color={FIELD_COLOR}
+          roughness={0.9}
+        />
       </mesh>
 
       {/* Field lines */}
       {/* Center line */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.01, 0]}>
         <planeGeometry args={[0.15, FIELD_HEIGHT]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
 
       {/* Center circle */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.01, 0]}>
         <ringGeometry args={[7.9, 8.1, 48]} />
-        <meshBasicMaterial color={FIELD_LINE_COLOR} side={THREE.DoubleSide} />
+        <meshBasicMaterial
+          color={FIELD_LINE_COLOR}
+          side={THREE.DoubleSide}
+        />
       </mesh>
 
       {/* Border lines */}
       {/* Top */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -halfH]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.01, -halfH]}>
         <planeGeometry args={[FIELD_WIDTH, 0.15]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
       {/* Bottom */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, halfH]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.01, halfH]}>
         <planeGeometry args={[FIELD_WIDTH, 0.15]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
       {/* Left (above goal) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-halfW, 0.01, -(halfH + goalHalf) / 2]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[-halfW, 0.01, -(halfH + goalHalf) / 2]}>
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
       {/* Left (below goal) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-halfW, 0.01, (halfH + goalHalf) / 2]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[-halfW, 0.01, (halfH + goalHalf) / 2]}>
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
       {/* Right (above goal) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[halfW, 0.01, -(halfH + goalHalf) / 2]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[halfW, 0.01, -(halfH + goalHalf) / 2]}>
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
       {/* Right (below goal) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[halfW, 0.01, (halfH + goalHalf) / 2]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[halfW, 0.01, (halfH + goalHalf) / 2]}>
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
@@ -427,34 +535,58 @@ function Field() {
       {/* Top wall */}
       <mesh position={[0, 1, -halfH - 0.5]}>
         <boxGeometry args={[FIELD_WIDTH + 2, 2, 1]} />
-        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
+        <meshStandardMaterial
+          color={0x2a2a3a}
+          transparent
+          opacity={0.5}
+        />
       </mesh>
       {/* Bottom wall */}
       <mesh position={[0, 1, halfH + 0.5]}>
         <boxGeometry args={[FIELD_WIDTH + 2, 2, 1]} />
-        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
+        <meshStandardMaterial
+          color={0x2a2a3a}
+          transparent
+          opacity={0.5}
+        />
       </mesh>
 
       {/* Left wall (above goal) */}
       <mesh position={[-halfW - 0.5, 1, -(halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
-        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
+        <meshStandardMaterial
+          color={0x2a2a3a}
+          transparent
+          opacity={0.5}
+        />
       </mesh>
       {/* Left wall (below goal) */}
       <mesh position={[-halfW - 0.5, 1, (halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
-        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
+        <meshStandardMaterial
+          color={0x2a2a3a}
+          transparent
+          opacity={0.5}
+        />
       </mesh>
 
       {/* Right wall (above goal) */}
       <mesh position={[halfW + 0.5, 1, -(halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
-        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
+        <meshStandardMaterial
+          color={0x2a2a3a}
+          transparent
+          opacity={0.5}
+        />
       </mesh>
       {/* Right wall (below goal) */}
       <mesh position={[halfW + 0.5, 1, (halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
-        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
+        <meshStandardMaterial
+          color={0x2a2a3a}
+          transparent
+          opacity={0.5}
+        />
       </mesh>
 
       {/* Goals */}
@@ -463,26 +595,47 @@ function Field() {
         {/* Back */}
         <mesh position={[-GOAL_DEPTH / 2, 1.5, 0]}>
           <boxGeometry args={[0.3, 3, GOAL_WIDTH]} />
-          <meshStandardMaterial color={GOAL_BLUE_COLOR} emissive={BLUE_COLOR} emissiveIntensity={0.1} />
+          <meshStandardMaterial
+            color={GOAL_BLUE_COLOR}
+            emissive={BLUE_COLOR}
+            emissiveIntensity={0.1}
+          />
         </mesh>
         {/* Top bar */}
         <mesh position={[0, 3, 0]}>
           <boxGeometry args={[GOAL_DEPTH, 0.3, GOAL_WIDTH]} />
-          <meshStandardMaterial color={GOAL_BLUE_COLOR} emissive={BLUE_COLOR} emissiveIntensity={0.1} />
+          <meshStandardMaterial
+            color={GOAL_BLUE_COLOR}
+            emissive={BLUE_COLOR}
+            emissiveIntensity={0.1}
+          />
         </mesh>
         {/* Posts */}
         <mesh position={[0, 1.5, -goalHalf]}>
           <boxGeometry args={[GOAL_DEPTH, 3, 0.3]} />
-          <meshStandardMaterial color={GOAL_BLUE_COLOR} emissive={BLUE_COLOR} emissiveIntensity={0.15} />
+          <meshStandardMaterial
+            color={GOAL_BLUE_COLOR}
+            emissive={BLUE_COLOR}
+            emissiveIntensity={0.15}
+          />
         </mesh>
         <mesh position={[0, 1.5, goalHalf]}>
           <boxGeometry args={[GOAL_DEPTH, 3, 0.3]} />
-          <meshStandardMaterial color={GOAL_BLUE_COLOR} emissive={BLUE_COLOR} emissiveIntensity={0.15} />
+          <meshStandardMaterial
+            color={GOAL_BLUE_COLOR}
+            emissive={BLUE_COLOR}
+            emissiveIntensity={0.15}
+          />
         </mesh>
         {/* Net (back plane) */}
         <mesh position={[-GOAL_DEPTH / 2 + 0.2, 1.5, 0]}>
           <planeGeometry args={[0.1, 3]} />
-          <meshBasicMaterial color={BLUE_COLOR} transparent opacity={0.15} side={THREE.DoubleSide} />
+          <meshBasicMaterial
+            color={BLUE_COLOR}
+            transparent
+            opacity={0.15}
+            side={THREE.DoubleSide}
+          />
         </mesh>
       </group>
 
@@ -490,23 +643,44 @@ function Field() {
       <group position={[halfW + GOAL_DEPTH / 2, 0, 0]}>
         <mesh position={[GOAL_DEPTH / 2, 1.5, 0]}>
           <boxGeometry args={[0.3, 3, GOAL_WIDTH]} />
-          <meshStandardMaterial color={GOAL_RED_COLOR} emissive={RED_COLOR} emissiveIntensity={0.1} />
+          <meshStandardMaterial
+            color={GOAL_RED_COLOR}
+            emissive={RED_COLOR}
+            emissiveIntensity={0.1}
+          />
         </mesh>
         <mesh position={[0, 3, 0]}>
           <boxGeometry args={[GOAL_DEPTH, 0.3, GOAL_WIDTH]} />
-          <meshStandardMaterial color={GOAL_RED_COLOR} emissive={RED_COLOR} emissiveIntensity={0.1} />
+          <meshStandardMaterial
+            color={GOAL_RED_COLOR}
+            emissive={RED_COLOR}
+            emissiveIntensity={0.1}
+          />
         </mesh>
         <mesh position={[0, 1.5, -goalHalf]}>
           <boxGeometry args={[GOAL_DEPTH, 3, 0.3]} />
-          <meshStandardMaterial color={GOAL_RED_COLOR} emissive={RED_COLOR} emissiveIntensity={0.15} />
+          <meshStandardMaterial
+            color={GOAL_RED_COLOR}
+            emissive={RED_COLOR}
+            emissiveIntensity={0.15}
+          />
         </mesh>
         <mesh position={[0, 1.5, goalHalf]}>
           <boxGeometry args={[GOAL_DEPTH, 3, 0.3]} />
-          <meshStandardMaterial color={GOAL_RED_COLOR} emissive={RED_COLOR} emissiveIntensity={0.15} />
+          <meshStandardMaterial
+            color={GOAL_RED_COLOR}
+            emissive={RED_COLOR}
+            emissiveIntensity={0.15}
+          />
         </mesh>
         <mesh position={[GOAL_DEPTH / 2 - 0.2, 1.5, 0]}>
           <planeGeometry args={[0.1, 3]} />
-          <meshBasicMaterial color={RED_COLOR} transparent opacity={0.15} side={THREE.DoubleSide} />
+          <meshBasicMaterial
+            color={RED_COLOR}
+            transparent
+            opacity={0.15}
+            side={THREE.DoubleSide}
+          />
         </mesh>
       </group>
     </group>
@@ -533,17 +707,30 @@ export default function GameScene({ latestRef, room }: GameSceneProps) {
         shadow-camera-top={-35}
         shadow-camera-bottom={35}
       />
-      <directionalLight position={[-10, 20, -10]} intensity={0.3} />
+      <directionalLight
+        position={[-10, 20, -10]}
+        intensity={0.3}
+      />
 
       {/* Sky color */}
-      <color attach="background" args={['#0a0a1a']} />
-      <fog attach="fog" args={['#0a0a1a', 60, 120]} />
+      <color
+        attach="background"
+        args={["#0a0a1a"]}
+      />
+      <fog
+        attach="fog"
+        args={["#0a0a1a", 60, 120]}
+      />
 
       {/* Field */}
       <Field />
 
       {/* Players */}
-      <PlayerPool latestRef={latestRef} room={room} localPlayerPos={localPlayerPos} />
+      <PlayerPool
+        latestRef={latestRef}
+        room={room}
+        localPlayerPos={localPlayerPos}
+      />
 
       {/* PowerUps */}
       <PowerUpPool latestRef={latestRef} />
@@ -552,7 +739,10 @@ export default function GameScene({ latestRef, room }: GameSceneProps) {
       <Ball latestRef={latestRef} />
 
       {/* Camera */}
-      <CameraFollow latestRef={latestRef} localPlayerPos={localPlayerPos} />
+      <CameraFollow
+        latestRef={latestRef}
+        localPlayerPos={localPlayerPos}
+      />
     </>
   );
 }

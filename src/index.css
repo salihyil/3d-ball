@@ -868,6 +868,33 @@ h1 {
   backdrop-filter: blur(8px);
 }
 
+.hud-sound-toggle {
+  position: absolute;
+  top: 16px;
+  right: 88px; /* Room for ping indicator */
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  z-index: 100;
+  pointer-events: auto;
+  background: rgba(10, 15, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hud-sound-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 /* Goal Scored Overlay */
 .goal-overlay {
   position: fixed;
