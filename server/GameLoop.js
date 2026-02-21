@@ -95,7 +95,7 @@ export class GameLoop {
     for (let i = 0; i < count; i++) {
       const spread = FIELD_HEIGHT * 0.6;
       const zOffset = count === 1 ? 0 : (i / (count - 1) - 0.5) * spread;
-      const xBase = (FIELD_WIDTH / 4) * side;
+      const xBase = (FIELD_WIDTH / 3) * side;
 
       this.players[ids[i]] = {
         position: { x: xBase, y: PLAYER_RADIUS, z: zOffset },
@@ -153,7 +153,7 @@ export class GameLoop {
     let zOffset = (Math.random() - 0.5) * 10;
 
     this.players[socketId] = {
-      position: { x: isBlue ? -20 : 20, y: 0.5, z: zOffset },
+      position: { x: isBlue ? -25 : 25, y: 0.5, z: zOffset },
       velocity: { x: 0, y: 0, z: 0 },
       team,
       boostRemaining: 0,

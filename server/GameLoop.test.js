@@ -31,6 +31,46 @@ describe('GameLoop', () => {
     expect(p2.position.x).toBeGreaterThan(0); // Red spawns on right
   });
 
+  it('should not spawn players inside obstacles', () => {
+    // Obstacles are at x: +/- 20, z: +/- 15, radius: 2.5
+    // Players have radius 1.0. Total safe distance > 3.5
+    const FIELD_OBSTACLES = [
+      {
+        id: 'obs1',
+        position: { x: -20, y: 0, z: -15 },
+        radius: 2.5,
+        height: 10,
+      },
+      {
+        id: 'obs2',
+        position: { x: -20, y: 0, z: 15 },
+        radius: 2.5,
+        height: 10,
+      },
+      {
+        id: 'obs3',
+        position: { x: 20, y: 0, z: -15 },
+        radius: 2.5,
+        height: 10,
+      },
+      { id: 'obs4', position: { x: 20, y: 0, z: 15 }, radius: 2.5, height: 10 },
+    ];
+
+    // Create a game with 3 players on blue to trigger the spread spawns
+    playerData = { p1: 'blue', p2: 'blue', p3: 'blue' };
+    loop = new GameLoop(roomMock, playerData, true);
+
+    for (const player of Object.values(loop.players)) {
+      for (const obs of FIELD_OBSTACLES) {
+        const dx = player.position.x - obs.position.x;
+        const dz = player.position.z - obs.position.z;
+        const distSq = dx * dx + dz * dz;
+        const minDist = 1.0 + obs.radius; // player radius + obstacle radius
+        expect(distSq).toBeGreaterThan(minDist * minDist);
+      }
+    }
+  });
+
   it('should reset positions correctly', () => {
     loop.ball.position = { x: 10, y: 10, z: 10 };
     loop.resetPositions();
