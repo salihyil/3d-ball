@@ -24,10 +24,13 @@ export default function Home() {
     socket.emit(
       'create-room',
       { nickname: nickname.trim(), matchDuration },
-      (res: { roomId: string }) => {
+      (res: { roomId: string; hostToken?: string }) => {
         setLoading(false);
         if (res.roomId) {
           sessionStorage.setItem('bb-nickname', nickname.trim());
+          if (res.hostToken) {
+            sessionStorage.setItem(`host-token-${res.roomId}`, res.hostToken);
+          }
           navigate(`/lobby/${res.roomId}`);
         }
       }

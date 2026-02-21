@@ -48,9 +48,11 @@ export default function Lobby() {
       return;
     }
 
+    const hostToken = sessionStorage.getItem(`host-token-${roomId}`);
+
     socket.emit(
       'join-room',
-      { roomId: roomId!, nickname },
+      { roomId: roomId!, nickname, hostToken },
       (res: { success: boolean; error?: string; room?: RoomInfo }) => {
         if (res.room) {
           setRoom(res.room);
@@ -120,6 +122,9 @@ export default function Lobby() {
       setTimeout(() => setCopied(false), 2000);
     });
   }, [roomId]);
+
+  const myId = socket.id;
+  const isHost = room?.hostId === myId;
 
   const handleTextureSelect = (url: string) => {
     if (!isHost) return;
@@ -191,8 +196,6 @@ export default function Lobby() {
     );
   }
 
-  const myId = socket.id;
-  const isHost = room.hostId === myId;
   const bluePlayers = room.players.filter((p: PlayerInfo) => p.team === 'blue');
   const redPlayers = room.players.filter((p: PlayerInfo) => p.team === 'red');
   const canStart = true; // Allow 1-player games

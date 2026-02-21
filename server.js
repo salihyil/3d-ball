@@ -83,16 +83,20 @@ io.on('connection', (socket) => {
       return callback({ roomId: null, error: 'Invalid nickname' });
     }
 
-    const roomId = uuidv4().slice(0, 8);
+    const hostToken = uuidv4();
+    const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
     const room = new Room(roomId, matchDuration, io, enableFeatures ?? true);
+    room.hostToken = hostToken;
     rooms.set(roomId, room);
 
     room.addPlayer(socket, nickname, true);
     currentRoomId = roomId;
     socket.join(roomId);
 
-    console.log(`[ROOM] Created: ${roomId} by "${nickname}"`);
-    callback({ roomId });
+    console.log(
+      `[ROOM] Created: ${roomId} by "${nickname}" (Host Token: ${hostToken.slice(0, 4)}...)`
+    );
+    callback({ roomId, hostToken });
     io.to(roomId).emit('room-update', room.getRoomInfo());
   });
 
@@ -111,6 +115,10 @@ io.on('connection', (socket) => {
     // If player is already in this room (e.g. creator navigated to lobby)
     if (room.hasPlayer(socket.id)) {
       currentRoomId = roomId;
+      // If they have the host token, make sure they are host (re-claim if needed)
+      if (data.hostToken && data.hostToken === room.hostToken) {
+        room.reclaimHost(socket.id);
+      }
       return callback({ success: true, room: room.getRoomInfo() });
     }
 
@@ -118,11 +126,20 @@ io.on('connection', (socket) => {
       return callback({ success: false, error: 'Room is full (10/10)' });
     }
 
-    room.addPlayer(socket, nickname, false);
+    // Check if this player is the returning host
+    const returningHost = data.hostToken && data.hostToken === room.hostToken;
+
+    room.addPlayer(socket, nickname, returningHost);
     currentRoomId = roomId;
     socket.join(roomId);
 
-    console.log(`[ROOM] ${nickname} joined ${roomId}`);
+    if (returningHost) {
+      room.reclaimHost(socket.id);
+    }
+
+    console.log(
+      `[ROOM] ${nickname} joined ${roomId} ${returningHost ? '(as recovering host)' : ''}`
+    );
     callback({ success: true, room: room.getRoomInfo() });
     io.to(roomId).emit('room-update', room.getRoomInfo());
     socket.to(roomId).emit('player-joined', {
@@ -236,11 +253,16 @@ io.on('connection', (socket) => {
     room.removePlayer(socket.id);
     socket.leave(currentRoomId);
 
-    if (isHost || room.isEmpty()) {
-      room.destroy();
+    if (room.isEmpty()) {
+      room.destroy(); // Still call destroy for cleanup
       rooms.delete(currentRoomId);
-      console.log(`[ROOM] ${currentRoomId} deleted (host left or empty)`);
+      console.log(`[ROOM] ${currentRoomId} deleted (empty)`);
       io.to(currentRoomId).emit('room-destroyed');
+    } else if (isHost) {
+      console.log(
+        `[ROOM] Host left ${currentRoomId}. Migrating host immediately...`
+      );
+      room.migrateHost();
     } else {
       io.to(currentRoomId).emit('room-update', room.getRoomInfo());
       socket.to(currentRoomId).emit('player-left', { nickname });

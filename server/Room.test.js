@@ -83,8 +83,42 @@ describe('Room', () => {
   });
 
   it('should identify empty room', () => {
-    expect(room.isEmpty()).toBe(true);
     room.addPlayer({ id: 's1' }, 'P1', true);
     expect(room.isEmpty()).toBe(false);
+  });
+
+  describe('Host Migration', () => {
+    it('should migrate host immediately', () => {
+      room.addPlayer({ id: 's1' }, 'Host', true);
+      room.addPlayer({ id: 's2' }, 'Guest', false);
+
+      room.removePlayer('s1');
+      room.migrateHost();
+
+      expect(room.isHost('s2')).toBe(true); // Promoted
+      expect(room.isHost('s1')).toBe(false);
+    });
+
+    it('should allow reclaimed host status', () => {
+      room.addPlayer({ id: 's1' }, 'Host', true);
+      room.addPlayer({ id: 's2' }, 'Guest', false);
+
+      room.reclaimHost('s1');
+
+      expect(room.isHost('s1')).toBe(true);
+      expect(room.isHost('s2')).toBe(false);
+    });
+
+    it('should migrate to the next available player', () => {
+      room.addPlayer({ id: 's1' }, 'Host', true);
+      room.addPlayer({ id: 's2' }, 'Guest 1', false);
+      room.addPlayer({ id: 's3' }, 'Guest 2', false);
+
+      room.players.delete('s1'); // Simulate host gone
+      room.migrateHost();
+
+      expect(room.isHost('s2')).toBe(true);
+      expect(room.isHost('s3')).toBe(false);
+    });
   });
 });

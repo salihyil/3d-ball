@@ -21,6 +21,7 @@ export class Room {
     this.gameLoop = null;
     this.lastActivity = Date.now();
     this.fieldTexture = '';
+    this.hostToken = null;
   }
 
   addPlayer(socket, nickname, isHost) {
@@ -267,5 +268,33 @@ export class Room {
     const blue = this.getTeamCount('blue');
     const red = this.getTeamCount('red');
     return blue <= red ? 'blue' : 'red';
+  }
+
+  // ---- Host Migration ----
+
+  migrateHost() {
+    console.log(`[ROOM] ${this.roomId} Host migration triggered.`);
+
+    // Assign new host: the oldest player in the Map
+    if (this.players.size > 0) {
+      const firstPlayerId = this.players.keys().next().value;
+      const newHost = this.players.get(firstPlayerId);
+      newHost.isHost = true;
+      console.log(
+        `[ROOM] ${this.roomId} Host migrated to "${newHost.nickname}" (${firstPlayerId})`
+      );
+    }
+
+    this.io.to(this.roomId).emit('room-update', this.getRoomInfo());
+  }
+
+  reclaimHost(socketId) {
+    const player = this.players.get(socketId);
+    if (player) {
+      player.isHost = true;
+      console.log(
+        `[ROOM] ${this.roomId} Host reclaimed by "${player.nickname}"`
+      );
+    }
   }
 }

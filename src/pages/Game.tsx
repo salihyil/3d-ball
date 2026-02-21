@@ -75,9 +75,10 @@ export default function Game() {
     // ---- Re-join room to associate this socket with the room on server ----
     const nickname = sessionStorage.getItem('bb-nickname') || 'Player';
     const rejoinRoom = () => {
+      const hostToken = sessionStorage.getItem(`host-token-${roomId}`);
       socket.emit(
         'join-room',
-        { roomId, nickname },
+        { roomId, nickname, hostToken },
         (res: {
           success: boolean;
           room?: { players: { id: string; team: string }[]; gameState: string };

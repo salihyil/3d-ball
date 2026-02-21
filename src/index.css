@@ -26,8 +26,8 @@
   --warning: #f59e0b;
 
   /* Typography */
-  --font-display: "Outfit", sans-serif;
-  --font-mono: "Space Mono", monospace;
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'Space Mono', monospace;
 
   /* Spacing */
   --radius-sm: 8px;
@@ -67,14 +67,26 @@ body {
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 50%, rgba(239, 68, 68, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 0%, rgba(168, 85, 247, 0.05) 0%, transparent 40%),
+    radial-gradient(
+      ellipse at 20% 50%,
+      rgba(59, 130, 246, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 80% 50%,
+      rgba(239, 68, 68, 0.06) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(168, 85, 247, 0.05) 0%,
+      transparent 40%
+    ),
     var(--bg-primary);
 }
 
 .bg-animated::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background:
@@ -329,7 +341,12 @@ h1 {
   font-size: 56px;
   line-height: 1;
   margin-bottom: 8px;
-  background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--blue-team) 100%);
+  background: linear-gradient(
+    135deg,
+    #fff 0%,
+    var(--accent) 50%,
+    var(--blue-team) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -369,7 +386,7 @@ h1 {
 
 .home-divider::before,
 .home-divider::after {
-  content: "";
+  content: '';
   flex: 1;
   height: 1px;
   background: var(--border-glass);
@@ -1072,7 +1089,11 @@ h1 {
   min-width: 32px;
   height: 32px;
   padding: 4px 8px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.04)
+  );
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-bottom-width: 3px;
   border-bottom-color: rgba(255, 255, 255, 0.08);
@@ -1220,4 +1241,25 @@ h1 {
 
 .hud-powerup.glow {
   border-color: var(--glow-color);
+}
+/* ---- Reconnecting Spinner ---- */
+.reconnecting-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(168, 85, 247, 0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
