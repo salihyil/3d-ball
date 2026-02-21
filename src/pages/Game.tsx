@@ -138,7 +138,9 @@ export default function Game() {
     }) => {
       setGoalInfo(data);
       setScore(data.score);
-      AudioManager.playGoal();
+      if (isSoundEnabled) {
+        AudioManager.playGoal();
+      }
       setTimeout(() => setGoalInfo(null), 2000);
     };
 

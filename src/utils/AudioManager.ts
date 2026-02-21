@@ -86,6 +86,7 @@ class AudioManagerImpl {
     const duration = 0.15;
 
     notes.forEach((freq, idx) => {
+      if (!this.enabled) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
