@@ -2,6 +2,7 @@
   "name": "ball-brawl",
   "private": true,
   "version": "1.0.0",
+  "homepage": "https://threed-ball.onrender.com",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"node --watch server.js\"",
