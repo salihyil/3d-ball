@@ -5,7 +5,8 @@
     "save": "Guardar",
     "back": "Volver",
     "you": "TÚ",
-    "host": "ANFITRIÓN"
+    "host": "ANFITRIÓN",
+    "press_enter_chat": "Presiona Enter para chatear..."
   },
   "home": {
     "title": "BALL BRAWL",
@@ -28,6 +29,7 @@
     "copy_link": "📋 Copiar enlace",
     "blue_team": "Equipo Azul ({{count}}/5)",
     "red_team": "Equipo Rojo ({{count}}/5)",
+    "empty_team": "Equipo Vacío",
     "join_blue": "Unirse al Azul",
     "join_red": "Unirse al Rojo",
     "team_full": "Equipo lleno",
@@ -77,5 +79,10 @@
       "generic_desc": "Efecto especial activo"
     },
     "host_disconnected_desc": "El anfitrión ha abandonado o ha perdido la conexión. La sala se ha cerrado."
+  },
+  "chat": {
+    "player_joined": "{{nickname}} se ha unido a la sala.",
+    "player_left": "{{nickname}} ha abandonado la sala.",
+    "player_switched": "{{nickname}} se ha cambiado al equipo {{team}}."
   }
 }

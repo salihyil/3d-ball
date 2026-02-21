@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import Chat from '../components/Chat';
 import { BoostPads, Field, Obstacles } from '../components/GameScene';
 import LanguageSelector from '../components/LanguageSelector';
 import { socket } from '../hooks/useNetwork';
@@ -204,13 +205,13 @@ export default function Lobby() {
     <>
       <div className="bg-animated" />
       <div className="page-center">
-        <div className="lobby-container">
+        <div className="lobby-container" style={{ maxWidth: '1100px' }}>
           <div
             className="glass-card animate-in"
-            style={{ padding: '24px', margin: '0 auto' }}
+            style={{ padding: '32px', margin: '0 auto' }}
           >
-            {/* Header */}
-            <div className="lobby-header" style={{ marginBottom: '16px' }}>
+            <div className="noise-overlay" />
+            <div className="lobby-header" style={{ marginBottom: '24px' }}>
               <div
                 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
               >
@@ -238,36 +239,55 @@ export default function Lobby() {
               </button>
             </div>
 
-            {/* Teams */}
-            <div className="lobby-teams">
+            {/* Teams Grid */}
+            <div
+              className="lobby-teams animate-in"
+              style={{ animationDelay: '0.1s' }}
+            >
+              {/* Blue Team */}
               <div className="team-panel blue">
-                <div className="team-title">
-                  <span className="team-dot" />
+                <div
+                  className="team-title"
+                  style={{ color: 'var(--blue-team)' }}
+                >
+                  <div
+                    className="team-dot"
+                    style={{
+                      backgroundColor: 'var(--blue-team)',
+                      boxShadow: '0 0 10px var(--blue-team)',
+                    }}
+                  />
                   {t('lobby.blue_team', { count: bluePlayers.length })}
                 </div>
                 <div className="team-players">
                   {bluePlayers.map((p: PlayerInfo) => (
                     <div key={p.id} className="team-player">
-                      {p.nickname}
-                      {p.isHost ? (
+                      <span className="mono">{p.nickname}</span>
+                      {p.isHost && (
                         <span className="host-badge">{t('common.host')}</span>
-                      ) : null}
-                      {p.id === myId ? (
+                      )}
+                      {p.id === socket.id && (
                         <span className="you-badge">{t('common.you')}</span>
-                      ) : null}
+                      )}
                     </div>
                   ))}
+                  {bluePlayers.length === 0 && (
+                    <div
+                      className="team-player"
+                      style={{ opacity: 0.3, fontStyle: 'italic' }}
+                    >
+                      {t('lobby.empty_team')}
+                    </div>
+                  )}
                 </div>
                 <button
                   className="btn btn-blue"
-                  style={{
-                    marginTop: '12px',
-                    width: '100%',
-                    fontSize: '13px',
-                    padding: '8px',
-                  }}
+                  style={{ marginTop: '20px', width: '100%' }}
                   onClick={() => handleSwitchTeam('blue')}
-                  disabled={bluePlayers.length >= 5}
+                  disabled={
+                    bluePlayers.find((p: PlayerInfo) => p.id === socket.id)
+                      ?.team === 'blue' || bluePlayers.length >= 5
+                  }
                 >
                   {bluePlayers.length >= 5
                     ? t('lobby.team_full')
@@ -275,34 +295,50 @@ export default function Lobby() {
                 </button>
               </div>
 
+              {/* Red Team */}
               <div className="team-panel red">
-                <div className="team-title">
-                  <span className="team-dot" />
+                <div
+                  className="team-title"
+                  style={{ color: 'var(--red-team)' }}
+                >
+                  <div
+                    className="team-dot"
+                    style={{
+                      backgroundColor: 'var(--red-team)',
+                      boxShadow: '0 0 10px var(--red-team)',
+                    }}
+                  />
                   {t('lobby.red_team', { count: redPlayers.length })}
                 </div>
                 <div className="team-players">
                   {redPlayers.map((p: PlayerInfo) => (
                     <div key={p.id} className="team-player">
-                      {p.nickname}
-                      {p.isHost ? (
+                      <span className="mono">{p.nickname}</span>
+                      {p.isHost && (
                         <span className="host-badge">{t('common.host')}</span>
-                      ) : null}
-                      {p.id === myId ? (
+                      )}
+                      {p.id === socket.id && (
                         <span className="you-badge">{t('common.you')}</span>
-                      ) : null}
+                      )}
                     </div>
                   ))}
+                  {redPlayers.length === 0 && (
+                    <div
+                      className="team-player"
+                      style={{ opacity: 0.3, fontStyle: 'italic' }}
+                    >
+                      {t('lobby.empty_team')}
+                    </div>
+                  )}
                 </div>
                 <button
                   className="btn btn-red"
-                  style={{
-                    marginTop: '12px',
-                    width: '100%',
-                    fontSize: '13px',
-                    padding: '8px',
-                  }}
+                  style={{ marginTop: '20px', width: '100%' }}
                   onClick={() => handleSwitchTeam('red')}
-                  disabled={redPlayers.length >= 5}
+                  disabled={
+                    redPlayers.find((p: PlayerInfo) => p.id === socket.id)
+                      ?.team === 'red' || redPlayers.length >= 5
+                  }
                 >
                   {redPlayers.length >= 5
                     ? t('lobby.team_full')
@@ -311,205 +347,248 @@ export default function Lobby() {
               </div>
             </div>
 
-            {/* Settings + Actions */}
-            <div className="lobby-settings">
-              <span className="label">{t('lobby.duration')}</span>
-              <span className="mono" style={{ color: 'var(--accent)' }}>
-                {room.matchDuration} min
-              </span>
-              <span style={{ flex: 1 }} />
-              <span className="label" style={{ color: 'var(--text-muted)' }}>
-                {t('lobby.players_count', { count: room.players.length })}
-              </span>
-            </div>
-
-            {/* Feature Customization */}
+            {/* Side-by-Side Layout for Chat and Controls */}
             <div
-              style={{
-                marginTop: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                background: 'rgba(0,0,0,0.2)',
-                borderRadius: '8px',
-              }}
+              className="lobby-content-grid animate-in"
+              style={{ animationDelay: '0.2s' }}
             >
-              <input
-                type="checkbox"
-                id="enableFeatures"
-                checked={room.enableFeatures !== false}
-                onChange={handleToggleFeatures}
-                disabled={!isHost}
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  cursor: isHost ? 'pointer' : 'default',
-                }}
-              />
-              <label
-                htmlFor="enableFeatures"
-                className="label"
-                style={{
-                  marginBottom: 0,
-                  cursor: isHost ? 'pointer' : 'default',
-                }}
-              >
-                {t('lobby.features_label')}
-              </label>
-            </div>
-
-            {/* Field Customization */}
-            <div
-              className="lobby-customization"
-              style={{
-                marginTop: '16px',
-                padding: '16px',
-                background: 'rgba(0,0,0,0.2)',
-                borderRadius: '8px',
-              }}
-            >
-              <div
-                style={{
-                  marginBottom: '12px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <span className="label">{t('lobby.field_texture')}</span>
-                <button
-                  className="btn btn-outline"
-                  style={{
-                    fontSize: '12px',
-                    padding: '4px 8px',
-                    opacity: isHost ? 1 : 0.5,
-                    cursor: isHost ? 'pointer' : 'not-allowed',
-                  }}
-                  onClick={() => isHost && fileInputRef.current?.click()}
-                  disabled={!isHost}
-                >
-                  {t('lobby.upload_custom')}
-                </button>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  style={{ display: 'none' }}
-                  onChange={handleFileUpload}
-                />
+              <div className="lobby-content-left">
+                <Chat />
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  overflowX: 'auto',
-                  paddingBottom: '8px',
-                }}
-              >
-                {SAMPLE_TEXTURES.map((texture) => (
-                  <div
-                    key={texture.id}
-                    onClick={() => handleTextureSelect(texture.url)}
-                    style={{
-                      cursor: isHost ? 'pointer' : 'default',
-                      width: '60px',
-                      height: '40px',
-                      borderRadius: '4px',
-                      border:
-                        pitchTexture === texture.url
-                          ? '2px solid #ffaa00'
-                          : '2px solid transparent',
-                      background: texture.url
-                        ? `url(${texture.url}) center/cover`
-                        : 'var(--field-color, #1a5c2a)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '10px',
-                      textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                      flexShrink: 0,
-                    }}
-                    title={texture.name}
+
+              <div className="lobby-content-right">
+                {/* Settings + Actions */}
+                <div className="lobby-settings">
+                  <span className="label">{t('lobby.duration')}</span>
+                  <span className="mono" style={{ color: 'var(--accent)' }}>
+                    {room.matchDuration} min
+                  </span>
+                  <span style={{ flex: 1 }} />
+                  <span
+                    className="label"
+                    style={{ color: 'var(--text-muted)' }}
                   >
-                    {!texture.url ? 'Default' : null}
-                  </div>
-                ))}
+                    {t('lobby.players_count', { count: room.players.length })}
+                  </span>
+                </div>
 
-                {pitchTexture &&
-                !SAMPLE_TEXTURES.find((t) => t.url === pitchTexture) ? (
+                {/* Feature Customization */}
+                <div
+                  style={{
+                    marginTop: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    background: 'rgba(0,0,0,0.2)',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    id="enableFeatures"
+                    checked={room.enableFeatures !== false}
+                    onChange={handleToggleFeatures}
+                    disabled={!isHost}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      cursor: isHost ? 'pointer' : 'default',
+                    }}
+                  />
+                  <label
+                    htmlFor="enableFeatures"
+                    className="label"
+                    style={{
+                      marginBottom: 0,
+                      cursor: isHost ? 'pointer' : 'default',
+                    }}
+                  >
+                    {t('lobby.features_label')}
+                  </label>
+                </div>
+
+                {/* Field Customization */}
+                <div
+                  className="lobby-customization"
+                  style={{
+                    marginTop: '0',
+                    padding: '16px',
+                    background: 'rgba(0,0,0,0.2)',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                  }}
+                >
                   <div
                     style={{
-                      cursor: 'pointer',
-                      width: '60px',
-                      height: '40px',
-                      borderRadius: '4px',
-                      border: '2px solid var(--accent)',
-                      background: `url(${pitchTexture}) center/cover`,
+                      marginBottom: '12px',
                       display: 'flex',
+                      justifyContent: 'space-between',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '10px',
-                      flexShrink: 0,
                     }}
-                    title="Custom Upload"
-                  />
-                ) : null}
-              </div>
-            </div>
+                  >
+                    <span className="label">{t('lobby.field_texture')}</span>
+                    <button
+                      className="btn btn-outline"
+                      style={{
+                        fontSize: '12px',
+                        padding: '4px 8px',
+                        opacity: isHost ? 1 : 0.5,
+                        cursor: isHost ? 'pointer' : 'not-allowed',
+                      }}
+                      onClick={() => isHost && fileInputRef.current?.click()}
+                      disabled={!isHost}
+                    >
+                      {t('lobby.upload_custom')}
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      style={{ display: 'none' }}
+                      onChange={handleFileUpload}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '8px',
+                      overflowX: 'auto',
+                      paddingBottom: '8px',
+                    }}
+                  >
+                    {SAMPLE_TEXTURES.map((texture) => (
+                      <div
+                        key={texture.id}
+                        onClick={() => handleTextureSelect(texture.url)}
+                        style={{
+                          cursor: isHost ? 'pointer' : 'default',
+                          width: '60px',
+                          height: '40px',
+                          borderRadius: '4px',
+                          border:
+                            pitchTexture === texture.url
+                              ? '2px solid #ffaa00'
+                              : '2px solid transparent',
+                          background: texture.url
+                            ? `url(${texture.url}) center/cover`
+                            : 'var(--field-color, #1a5c2a)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                          flexShrink: 0,
+                        }}
+                        title={texture.name}
+                      >
+                        {!texture.url ? 'Default' : null}
+                      </div>
+                    ))}
 
-            {/* 3D Preview Section */}
-            <div
-              style={{
-                marginTop: '16px',
-                height: '200px',
-                background: '#0a0a0a',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                position: 'relative',
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  left: '10px',
-                  background: 'rgba(0,0,0,0.6)',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  zIndex: 10,
-                  pointerEvents: 'none',
-                }}
-              >
-                {t('lobby.field_preview')}
-              </div>
-              <Canvas camera={{ position: [20, 20, 20], fov: 45 }}>
-                <Suspense fallback={null}>
-                  <ambientLight intensity={0.5} />
-                  <pointLight position={[10, 10, 10]} intensity={1} />
-                  <Stage environment="city" intensity={0.5}>
-                    <Field textureUrl={pitchTexture} />
-                    {room.enableFeatures !== false ? (
-                      <>
-                        <Obstacles latestRef={dummyLatestRef} />
-                        <BoostPads latestRef={dummyLatestRef} />
-                      </>
+                    {pitchTexture &&
+                    !SAMPLE_TEXTURES.find((t) => t.url === pitchTexture) ? (
+                      <div
+                        style={{
+                          cursor: 'pointer',
+                          width: '60px',
+                          height: '40px',
+                          borderRadius: '4px',
+                          border: '2px solid var(--accent)',
+                          background: `url(${pitchTexture}) center/cover`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          flexShrink: 0,
+                        }}
+                        title="Custom Upload"
+                      />
                     ) : null}
-                  </Stage>
-                  <OrbitControls
-                    autoRotate
-                    autoRotateSpeed={0.5}
-                    enableZoom={false}
-                    enablePan={false}
-                    maxPolarAngle={Math.PI / 2.1}
+                  </div>
+                </div>
+
+                {/* 3D Preview Section */}
+                <div
+                  style={{
+                    marginTop: '0',
+                    height: '200px',
+                    background: '#050508',
+                    borderRadius: 'var(--radius-md)',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    border: '1px solid var(--border-glass)',
+                    boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  <div className="noise-overlay" style={{ opacity: 0.1 }} />
+                  {/* Scanning Line Animation */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '2px',
+                      background:
+                        'linear-gradient(90deg, transparent, var(--accent), transparent)',
+                      zIndex: 5,
+                      animation: 'scan 3s linear infinite',
+                      opacity: 0.3,
+                    }}
                   />
-                </Suspense>
-              </Canvas>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '12px',
+                      left: '12px',
+                      background: 'rgba(0,0,0,0.5)',
+                      backdropFilter: 'blur(4px)',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      zIndex: 10,
+                      pointerEvents: 'none',
+                      fontFamily: 'var(--font-display)',
+                      color: 'var(--accent)',
+                      borderLeft: '2px solid var(--accent)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                    }}
+                  >
+                    {t('lobby.field_preview')}
+                  </div>
+                  <Canvas camera={{ position: [20, 20, 20], fov: 45 }}>
+                    <Suspense fallback={null}>
+                      <ambientLight intensity={0.5} />
+                      <pointLight position={[10, 10, 10]} intensity={1} />
+                      <Stage environment="city" intensity={0.5}>
+                        <Field textureUrl={pitchTexture} />
+                        {room.enableFeatures !== false ? (
+                          <>
+                            <Obstacles latestRef={dummyLatestRef} />
+                            <BoostPads latestRef={dummyLatestRef} />
+                          </>
+                        ) : null}
+                      </Stage>
+                      <OrbitControls
+                        autoRotate
+                        autoRotateSpeed={0.5}
+                        enableZoom={false}
+                        enablePan={false}
+                        maxPolarAngle={Math.PI / 2.1}
+                      />
+                    </Suspense>
+                  </Canvas>
+                </div>
+              </div>
             </div>
 
-            <div className="lobby-actions" style={{ marginTop: '24px' }}>
+            <div
+              className="lobby-actions animate-in"
+              style={{ marginTop: '32px', animationDelay: '0.3s' }}
+            >
               <button className="btn btn-outline" onClick={handleLeave}>
                 {t('lobby.leave')}
               </button>

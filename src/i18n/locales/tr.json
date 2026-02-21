@@ -5,7 +5,8 @@
     "save": "Kaydet",
     "back": "Geri",
     "you": "SEN",
-    "host": "KURUCU"
+    "host": "KURUCU",
+    "press_enter_chat": "Mesaj yazmak için Enter'a basın..."
   },
   "home": {
     "title": "BALL BRAWL",
@@ -28,6 +29,7 @@
     "copy_link": "📋 Bağlantıyı Kopyala",
     "blue_team": "Mavi Takım ({{count}}/5)",
     "red_team": "Kırmızı Takım ({{count}}/5)",
+    "empty_team": "Takım Boş",
     "join_blue": "Maviye Katıl",
     "join_red": "Kırmızıya Katıl",
     "team_full": "Takım Dolu",
@@ -77,5 +79,10 @@
       "generic_desc": "Özel efekt aktif"
     },
     "host_disconnected_desc": "Kurucu beklenmedik bir şekilde oyundan ayrıldı veya bağlantısı koptu. Oda kapatıldı."
+  },
+  "chat": {
+    "player_joined": "{{nickname}} odaya katıldı.",
+    "player_left": "{{nickname}} odadan ayrıldı.",
+    "player_switched": "{{nickname}} {{team}} takımına geçti."
   }
 }

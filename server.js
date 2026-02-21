@@ -76,6 +76,26 @@ io.on('connection', (socket) => {
     return inputCount <= 25;
   };
 
+  const sendChatMessage = (
+    text,
+    type = 'user',
+    nickname = null,
+    key = null,
+    params = null
+  ) => {
+    if (!currentRoomId) return;
+    const msg = {
+      id: uuidv4(),
+      type,
+      nickname,
+      text,
+      timestamp: Date.now(),
+      key,
+      params,
+    };
+    io.to(currentRoomId).emit('chat-message', msg);
+  };
+
   // ---- Create Room ----
   socket.on('create-room', (data, callback) => {
     const { nickname, matchDuration, enableFeatures } = data;
@@ -146,6 +166,13 @@ io.on('connection', (socket) => {
       nickname,
       team: room.getPlayerTeam(socket.id),
     });
+    sendChatMessage(
+      `${nickname} odaya katıldı.`,
+      'system',
+      null,
+      'chat.player_joined',
+      { nickname }
+    );
   });
 
   // ---- Switch Team ----
@@ -169,6 +196,15 @@ io.on('connection', (socket) => {
     }
 
     // Success will be broadcasted via room-update anyway, but we can call back too
+    const nickname = room.getPlayerNickname(socket.id);
+    const teamKey = targetTeam === 'red' ? 'game.red' : 'game.blue';
+    sendChatMessage(
+      `${nickname} takıma geçti.`,
+      'system',
+      null,
+      'chat.player_switched',
+      { nickname, team: teamKey }
+    );
     callback?.({ success: true });
   });
 
@@ -241,6 +277,19 @@ io.on('connection', (socket) => {
     room.handleInput(socket.id, data);
   });
 
+  // ---- Chat ----
+  socket.on('send-chat-message', (data) => {
+    if (!currentRoomId) return;
+    const { text } = data;
+    if (!text || text.trim().length === 0 || text.length > 100) return;
+
+    const room = rooms.get(currentRoomId);
+    if (!room) return;
+
+    const nickname = room.getPlayerNickname(socket.id);
+    sendChatMessage(text, 'user', nickname);
+  });
+
   // ---- Leave / Disconnect ----
   const leaveRoom = () => {
     if (!currentRoomId) return;
@@ -266,6 +315,13 @@ io.on('connection', (socket) => {
     } else {
       io.to(currentRoomId).emit('room-update', room.getRoomInfo());
       socket.to(currentRoomId).emit('player-left', { nickname });
+      sendChatMessage(
+        `${nickname} odadan ayrıldı.`,
+        'system',
+        null,
+        'chat.player_left',
+        { nickname }
+      );
     }
 
     currentRoomId = null;

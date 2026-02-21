@@ -5,7 +5,8 @@
     "save": "保存",
     "back": "返回",
     "you": "你",
-    "host": "房主"
+    "host": "房主",
+    "press_enter_chat": "按回车键聊天..."
   },
   "home": {
     "title": "BALL BRAWL",
@@ -28,6 +29,7 @@
     "copy_link": "📋 复制链接",
     "blue_team": "蓝队 ({{count}}/5)",
     "red_team": "红队 ({{count}}/5)",
+    "empty_team": "队伍为空",
     "join_blue": "加入蓝队",
     "join_red": "加入红队",
     "team_full": "队伍已满",
@@ -77,5 +79,10 @@
       "generic_desc": "特殊效果生效中"
     },
     "host_disconnected_desc": "房主意外离开了游戏或连接中断。房间现已关闭。"
+  },
+  "chat": {
+    "player_joined": "{{nickname}} 加入了房间。",
+    "player_left": "{{nickname}} 离开了房间。",
+    "player_switched": "{{nickname}} 切换到了 {{team}} 队。"
   }
 }

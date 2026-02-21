@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import Chat from '../components/Chat';
 import GameScene from '../components/GameScene';
 import MiniMap from '../components/MiniMap';
 import { useGameInput } from '../hooks/useGameInput';
@@ -374,6 +375,9 @@ export default function Game() {
             </div>
           </div>
         ) : null}
+
+        {/* Chat Overlay */}
+        <Chat isGameOverlay />
       </div>
 
       {/* Countdown Overlay */}

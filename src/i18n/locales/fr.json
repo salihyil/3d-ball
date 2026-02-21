@@ -5,7 +5,8 @@
     "save": "Enregistrer",
     "back": "Retour",
     "you": "VOUS",
-    "host": "HÔTE"
+    "host": "HÔTE",
+    "press_enter_chat": "Appuyez sur Entrée pour discuter..."
   },
   "home": {
     "title": "BALL BRAWL",
@@ -28,6 +29,7 @@
     "copy_link": "📋 Copier le lien",
     "blue_team": "Équipe Bleue ({{count}}/5)",
     "red_team": "Équipe Rouge ({{count}}/5)",
+    "empty_team": "Équipe Vide",
     "join_blue": "Rejoindre Bleu",
     "join_red": "Rejoindre Rouge",
     "team_full": "Équipe Complète",
@@ -77,5 +79,10 @@
       "generic_desc": "Effet spécial actif"
     },
     "host_disconnected_desc": "L'hôte a quitté la partie ou a perdu la connexion. La salle est maintenant fermée."
+  },
+  "chat": {
+    "player_joined": "{{nickname}} a rejoint la salle.",
+    "player_left": "{{nickname}} a quitté la salle.",
+    "player_switched": "{{nickname}} est passé dans l'équipe {{team}}."
   }
 }

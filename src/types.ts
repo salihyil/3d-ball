@@ -91,14 +91,24 @@ export interface PlayerInput {
   seq: number; // sequence number for reconciliation
 }
 
+export interface ChatMessage {
+  id: string;
+  type: 'user' | 'system';
+  nickname?: string;
+  text: string;
+  timestamp: number;
+  key?: string; // Translation key for system messages
+  params?: Record<string, string | number>; // Dynamic parameters for translation
+}
+
 // Socket.IO event types
 export interface ClientToServerEvents {
   'create-room': (
     data: { nickname: string; matchDuration: number; enableFeatures?: boolean },
-    cb: (res: { roomId: string }) => void
+    cb: (res: { roomId: string; hostToken: string }) => void
   ) => void;
   'join-room': (
-    data: { roomId: string; nickname: string },
+    data: { roomId: string; nickname: string; hostToken?: string | null },
     cb: (res: { success: boolean; error?: string; room?: RoomInfo }) => void
   ) => void;
   'switch-team': (
@@ -108,7 +118,9 @@ export interface ClientToServerEvents {
   'toggle-features': (data: { enableFeatures: boolean }) => void;
   'set-field-texture': (data: { fieldTexture: string }) => void;
   'start-game': () => void;
+  'enter-match': () => void;
   'player-input': (data: PlayerInput) => void;
+  'send-chat-message': (data: { text: string }) => void;
   'leave-room': () => void;
 }
 
@@ -127,6 +139,8 @@ export interface ServerToClientEvents {
   }) => void;
   'player-joined': (data: { nickname: string; team: Team }) => void;
   'player-left': (data: { nickname: string }) => void;
+  'chat-message': (message: ChatMessage) => void;
+  'room-destroyed': () => void;
   error: (data: { message: string }) => void;
 }
 

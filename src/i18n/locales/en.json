@@ -5,7 +5,8 @@
     "save": "Save",
     "back": "Back",
     "you": "YOU",
-    "host": "HOST"
+    "host": "HOST",
+    "press_enter_chat": "Press Enter to chat..."
   },
   "home": {
     "title": "BALL BRAWL",
@@ -28,6 +29,7 @@
     "copy_link": "📋 Copy Link",
     "blue_team": "Blue Team ({{count}}/5)",
     "red_team": "Red Team ({{count}}/5)",
+    "empty_team": "Empty Team",
     "join_blue": "Join Blue",
     "join_red": "Join Red",
     "team_full": "Team Full",
@@ -77,5 +79,10 @@
       "generic_desc": "Special effect active"
     },
     "host_disconnected_desc": "The host has unexpectedly left the game or their connection dropped. The room is now closed."
+  },
+  "chat": {
+    "player_joined": "{{nickname}} joined the room.",
+    "player_left": "{{nickname}} left the room.",
+    "player_switched": "{{nickname}} switched to {{team}} team."
   }
 }
