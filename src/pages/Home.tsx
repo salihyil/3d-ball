@@ -32,7 +32,7 @@ export default function Home() {
         }
       }
     );
-  }, [nickname, matchDuration, navigate]);
+  }, [nickname, matchDuration, navigate, t]);
 
   const handleJoin = useCallback(() => {
     if (!nickname.trim()) {
@@ -59,7 +59,7 @@ export default function Home() {
         }
       }
     );
-  }, [nickname, roomCode, navigate]);
+  }, [nickname, roomCode, navigate, t]);
 
   return (
     <>
