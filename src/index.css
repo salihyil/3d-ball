@@ -49,7 +49,8 @@ body,
 #root {
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  /* Default to auto overflow to allow scrolling in lobby/home */
+  overflow: auto;
 }
 
 body {
@@ -253,9 +254,12 @@ h1 {
 /* ---- Page Layouts ---- */
 .page-center {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* Use min-height and padding so tall content can be scrolled comfortably */
   min-height: 100vh;
+  padding: 40px 20px;
   position: relative;
   z-index: 1;
 }
@@ -685,6 +689,8 @@ h1 {
   width: 100vw;
   height: 100vh;
   position: relative;
+  /* Game itself should never show browser scrollbars */
+  overflow: hidden;
 }
 
 .game-canvas {

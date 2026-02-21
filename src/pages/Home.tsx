@@ -1,53 +1,61 @@
-import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { socket } from '../hooks/useNetwork';
+import { useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { socket } from "../hooks/useNetwork";
 
 export default function Home() {
   const navigate = useNavigate();
-  const [nickname, setNickname] = useState('');
-  const [roomCode, setRoomCode] = useState('');
+  const [nickname, setNickname] = useState("");
+  const [roomCode, setRoomCode] = useState("");
   const [matchDuration, setMatchDuration] = useState(5);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleCreate = useCallback(() => {
     if (!nickname.trim()) {
-      setError('Enter a nickname');
+      setError("Enter a nickname");
       return;
     }
     setLoading(true);
-    setError('');
+    setError("");
 
-    socket.emit('create-room', { nickname: nickname.trim(), matchDuration }, (res: { roomId: string }) => {
-      setLoading(false);
-      if (res.roomId) {
-        sessionStorage.setItem('bb-nickname', nickname.trim());
-        navigate(`/lobby/${res.roomId}`);
-      }
-    });
+    socket.emit(
+      "create-room",
+      { nickname: nickname.trim(), matchDuration },
+      (res: { roomId: string }) => {
+        setLoading(false);
+        if (res.roomId) {
+          sessionStorage.setItem("bb-nickname", nickname.trim());
+          navigate(`/lobby/${res.roomId}`);
+        }
+      },
+    );
   }, [nickname, matchDuration, navigate]);
 
   const handleJoin = useCallback(() => {
     if (!nickname.trim()) {
-      setError('Enter a nickname');
+      setError("Enter a nickname");
       return;
     }
     if (!roomCode.trim()) {
-      setError('Enter a room code');
+      setError("Enter a room code");
       return;
     }
     setLoading(true);
-    setError('');
+    setError("");
 
-    socket.emit('join-room', { roomId: roomCode.trim(), nickname: nickname.trim() }, (res: { success: boolean; error?: string }) => {
-      setLoading(false);
-      if (res.success) {
-        sessionStorage.setItem('bb-nickname', nickname.trim());
-        navigate(`/lobby/${roomCode.trim()}`);
-      } else {
-        setError(res.error || 'Failed to join');
-      }
-    });
+    socket.emit(
+      "join-room",
+      { roomId: roomCode.trim(), nickname: nickname.trim() },
+      (res: { success: boolean; error?: string }) => {
+        setLoading(false);
+        if (res.success) {
+          sessionStorage.setItem("bb-nickname", nickname.trim());
+          navigate(`/lobby/${roomCode.trim()}`);
+        } else {
+          setError(res.error || "Failed to join");
+        }
+      },
+    );
   }, [nickname, roomCode, navigate]);
 
   return (
@@ -60,7 +68,9 @@ export default function Home() {
             5v5 Multiplayer Soccer — Real-time 3D
           </p>
 
-          <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '32px' }}>
+          <div
+            className="glass-card animate-in animate-in-delay-2"
+            style={{ padding: "32px" }}>
             <div className="home-form">
               <div>
                 <label className="label">Your Name</label>
@@ -71,7 +81,7 @@ export default function Home() {
                   maxLength={16}
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                 />
               </div>
 
@@ -80,8 +90,7 @@ export default function Home() {
                 <select
                   className="select"
                   value={matchDuration}
-                  onChange={(e) => setMatchDuration(Number(e.target.value))}
-                >
+                  onChange={(e) => setMatchDuration(Number(e.target.value))}>
                   <option value={3}>3 Minutes</option>
                   <option value={5}>5 Minutes</option>
                   <option value={7}>7 Minutes</option>
@@ -92,8 +101,7 @@ export default function Home() {
               <button
                 className="btn btn-primary btn-lg"
                 onClick={handleCreate}
-                disabled={loading}
-              >
+                disabled={loading}>
                 ⚽ Create Room
               </button>
 
@@ -107,19 +115,18 @@ export default function Home() {
                   maxLength={8}
                   value={roomCode}
                   onChange={(e) => setRoomCode(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                  onKeyDown={(e) => e.key === "Enter" && handleJoin()}
                 />
                 <button
                   className="btn btn-outline"
                   onClick={handleJoin}
-                  disabled={loading}
-                >
+                  disabled={loading}>
                   Join
                 </button>
               </div>
 
               {error && (
-                <p style={{ color: 'var(--red-team)', fontSize: '13px', textAlign: 'left' }}>
+                <p style={{ color: "var(--red-team)", fontSize: "13px", textAlign: "left" }}>
                   {error}
                 </p>
               )}

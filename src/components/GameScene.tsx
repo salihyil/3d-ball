@@ -1,12 +1,14 @@
-import { Text } from "@react-three/drei";
+import { Text, useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { MutableRefObject, useMemo, useRef } from "react";
+import { MutableRefObject, Suspense, memo, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { socket } from "../hooks/useNetwork";
 import type { GameSnapshot, PlayerState } from "../types";
 import {
   BALL_RADIUS,
+  FIELD_BOOST_PADS,
   FIELD_HEIGHT,
+  FIELD_OBSTACLES,
   FIELD_WIDTH,
   GOAL_DEPTH,
   GOAL_WIDTH,
@@ -17,6 +19,7 @@ import { AudioManager } from "../utils/AudioManager";
 interface GameSceneProps {
   latestRef: MutableRefObject<GameSnapshot | null>;
   room: import("../types").RoomInfo | null;
+  pitchTextureUrl?: string;
 }
 
 // ---- Colors ----
@@ -448,7 +451,23 @@ function CameraFollow({
 }
 
 // ---- Field ----
-function Field() {
+const FieldWithTexture = memo(function FieldWithTexture({ textureUrl }: { textureUrl: string }) {
+  const texture = useTexture(textureUrl);
+
+  useEffect(() => {
+    if (texture) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(4, 4);
+      texture.needsUpdate = true;
+    }
+  }, [texture]);
+
+  return <FieldContent texture={texture} />;
+});
+
+function FieldContent({ texture }: { texture?: THREE.Texture | null }) {
   const halfW = FIELD_WIDTH / 2;
   const halfH = FIELD_HEIGHT / 2;
   const goalHalf = GOAL_WIDTH / 2;
@@ -462,12 +481,54 @@ function Field() {
         receiveShadow>
         <planeGeometry args={[FIELD_WIDTH + 10, FIELD_HEIGHT + 10]} />
         <meshStandardMaterial
-          color={FIELD_COLOR}
+          color={texture ? 0xffffff : FIELD_COLOR}
+          map={texture || null}
           roughness={0.9}
         />
       </mesh>
 
       {/* Field lines */}
+      <FieldLines
+        halfW={halfW}
+        halfH={halfH}
+        goalHalf={goalHalf}
+      />
+
+      {/* Walls */}
+      <Walls
+        halfW={halfW}
+        halfH={halfH}
+        goalHalf={goalHalf}
+      />
+
+      {/* Goals */}
+      <Goals
+        halfW={halfW}
+        goalHalf={goalHalf}
+      />
+    </group>
+  );
+}
+
+export function Field({ textureUrl }: { textureUrl?: string }) {
+  return (
+    <Suspense fallback={<FieldContent texture={null} />}>
+      {textureUrl ? <FieldWithTexture textureUrl={textureUrl} /> : <FieldContent texture={null} />}
+    </Suspense>
+  );
+}
+
+function FieldLines({
+  halfW,
+  halfH,
+  goalHalf,
+}: {
+  halfW: number;
+  halfH: number;
+  goalHalf: number;
+}) {
+  return (
+    <group>
       {/* Center line */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
@@ -488,51 +549,49 @@ function Field() {
       </mesh>
 
       {/* Border lines */}
-      {/* Top */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0.01, -halfH]}>
         <planeGeometry args={[FIELD_WIDTH, 0.15]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
-      {/* Bottom */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0.01, halfH]}>
         <planeGeometry args={[FIELD_WIDTH, 0.15]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
-      {/* Left (above goal) */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[-halfW, 0.01, -(halfH + goalHalf) / 2]}>
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
-      {/* Left (below goal) */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[-halfW, 0.01, (halfH + goalHalf) / 2]}>
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
-      {/* Right (above goal) */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[halfW, 0.01, -(halfH + goalHalf) / 2]}>
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
-      {/* Right (below goal) */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[halfW, 0.01, (halfH + goalHalf) / 2]}>
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
+    </group>
+  );
+}
 
-      {/* Walls (invisible boundaries with visible top edge) */}
-      {/* Top wall */}
+function Walls({ halfW, halfH, goalHalf }: { halfW: number; halfH: number; goalHalf: number }) {
+  return (
+    <group>
       <mesh position={[0, 1, -halfH - 0.5]}>
         <boxGeometry args={[FIELD_WIDTH + 2, 2, 1]} />
         <meshStandardMaterial
@@ -541,7 +600,6 @@ function Field() {
           opacity={0.5}
         />
       </mesh>
-      {/* Bottom wall */}
       <mesh position={[0, 1, halfH + 0.5]}>
         <boxGeometry args={[FIELD_WIDTH + 2, 2, 1]} />
         <meshStandardMaterial
@@ -550,8 +608,6 @@ function Field() {
           opacity={0.5}
         />
       </mesh>
-
-      {/* Left wall (above goal) */}
       <mesh position={[-halfW - 0.5, 1, -(halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
         <meshStandardMaterial
@@ -560,7 +616,6 @@ function Field() {
           opacity={0.5}
         />
       </mesh>
-      {/* Left wall (below goal) */}
       <mesh position={[-halfW - 0.5, 1, (halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
         <meshStandardMaterial
@@ -569,8 +624,6 @@ function Field() {
           opacity={0.5}
         />
       </mesh>
-
-      {/* Right wall (above goal) */}
       <mesh position={[halfW + 0.5, 1, -(halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
         <meshStandardMaterial
@@ -579,7 +632,6 @@ function Field() {
           opacity={0.5}
         />
       </mesh>
-      {/* Right wall (below goal) */}
       <mesh position={[halfW + 0.5, 1, (halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
         <meshStandardMaterial
@@ -588,11 +640,14 @@ function Field() {
           opacity={0.5}
         />
       </mesh>
+    </group>
+  );
+}
 
-      {/* Goals */}
-      {/* Blue goal (left) */}
+function Goals({ halfW, goalHalf }: { halfW: number; goalHalf: number }) {
+  return (
+    <group>
       <group position={[-halfW - GOAL_DEPTH / 2, 0, 0]}>
-        {/* Back */}
         <mesh position={[-GOAL_DEPTH / 2, 1.5, 0]}>
           <boxGeometry args={[0.3, 3, GOAL_WIDTH]} />
           <meshStandardMaterial
@@ -601,7 +656,6 @@ function Field() {
             emissiveIntensity={0.1}
           />
         </mesh>
-        {/* Top bar */}
         <mesh position={[0, 3, 0]}>
           <boxGeometry args={[GOAL_DEPTH, 0.3, GOAL_WIDTH]} />
           <meshStandardMaterial
@@ -610,7 +664,6 @@ function Field() {
             emissiveIntensity={0.1}
           />
         </mesh>
-        {/* Posts */}
         <mesh position={[0, 1.5, -goalHalf]}>
           <boxGeometry args={[GOAL_DEPTH, 3, 0.3]} />
           <meshStandardMaterial
@@ -627,7 +680,6 @@ function Field() {
             emissiveIntensity={0.15}
           />
         </mesh>
-        {/* Net (back plane) */}
         <mesh position={[-GOAL_DEPTH / 2 + 0.2, 1.5, 0]}>
           <planeGeometry args={[0.1, 3]} />
           <meshBasicMaterial
@@ -639,7 +691,6 @@ function Field() {
         </mesh>
       </group>
 
-      {/* Red goal (right) */}
       <group position={[halfW + GOAL_DEPTH / 2, 0, 0]}>
         <mesh position={[GOAL_DEPTH / 2, 1.5, 0]}>
           <boxGeometry args={[0.3, 3, GOAL_WIDTH]} />
@@ -687,58 +738,188 @@ function Field() {
   );
 }
 
+// ---- Obstacles ----
+const obstacleMaterial = new THREE.MeshStandardMaterial({
+  color: 0x222222,
+  roughness: 0.7,
+  metalness: 0.5,
+  emissive: new THREE.Color(0x111111),
+  emissiveIntensity: 0.5,
+});
+
+export function Obstacles() {
+  return (
+    <group>
+      {FIELD_OBSTACLES.map((obs) => (
+        <group
+          key={obs.id}
+          position={[obs.position.x, 0, obs.position.z]}>
+          <mesh
+            position={[0, obs.height / 2, 0]}
+            castShadow
+            receiveShadow>
+            <cylinderGeometry args={[obs.radius, obs.radius, obs.height, 32]} />
+            <primitive
+              object={obstacleMaterial}
+              attach="material"
+            />
+          </mesh>
+          <mesh
+            position={[0, 0.05, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[obs.radius + 0.2, obs.radius + 0.5, 32]} />
+            <meshBasicMaterial
+              color={0xffaa00}
+              transparent
+              opacity={0.5}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// ---- Boost Pads ----
+const boostPadActiveMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffff00,
+  emissive: 0xffaa00,
+  emissiveIntensity: 1.5,
+  transparent: true,
+  opacity: 0.8,
+});
+
+const boostPadInactiveMaterial = new THREE.MeshStandardMaterial({
+  color: 0x444400,
+  emissive: 0x000000,
+  transparent: true,
+  opacity: 0.3,
+});
+
+const boostPadGeometry = new THREE.CylinderGeometry(1, 1, 0.2, 32);
+
+export function BoostPads({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> }) {
+  const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(FIELD_BOOST_PADS.length).fill(null));
+  const lastTickRef = useRef<number>(-1);
+  const padStateMapRef = useRef<Map<string, boolean>>(new Map());
+
+  useFrame((state, delta) => {
+    const snapshot = latestRef.current;
+    if (!snapshot || !snapshot.boostPads) return;
+
+    // Update lookup map if it's a new tick
+    if (snapshot.tick !== lastTickRef.current) {
+      lastTickRef.current = snapshot.tick;
+      padStateMapRef.current.clear();
+      snapshot.boostPads.forEach((p) => {
+        padStateMapRef.current.set(p.id, p.active);
+      });
+    }
+
+    const padStateMap = padStateMapRef.current;
+
+    for (let i = 0; i < FIELD_BOOST_PADS.length; i++) {
+      const mesh = meshRefs.current[i];
+      if (!mesh) continue;
+
+      const isActive = padStateMap.has(FIELD_BOOST_PADS[i].id)
+        ? padStateMap.get(FIELD_BOOST_PADS[i].id)
+        : true;
+
+      if (isActive) {
+        mesh.material = boostPadActiveMaterial;
+        mesh.rotation.y += delta * 2;
+      } else {
+        mesh.material = boostPadInactiveMaterial;
+      }
+    }
+  });
+
+  return (
+    <group>
+      {FIELD_BOOST_PADS.map((pad, i) => (
+        <group
+          key={pad.id}
+          position={[pad.position.x, 0.1, pad.position.z]}>
+          <mesh
+            ref={(r) => {
+              meshRefs.current[i] = r;
+            }}
+            geometry={boostPadGeometry}
+            scale={[pad.radius, 1, pad.radius]}
+            receiveShadow>
+            <primitive
+              object={boostPadActiveMaterial}
+              attach="material"
+            />
+          </mesh>
+          <mesh
+            position={[0, 0.11, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[pad.radius * 0.5, pad.radius * 0.8, 16]} />
+            <meshBasicMaterial
+              color={0xffffff}
+              transparent
+              opacity={0.3}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 // ---- Main Scene ----
-export default function GameScene({ latestRef, room }: GameSceneProps) {
-  const localPlayerPos = useRef(new THREE.Vector3(0, 0, 0));
+export default function GameScene({ latestRef, room, pitchTextureUrl }: GameSceneProps) {
+  const localPlayerPos = useRef(new THREE.Vector3());
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.4} />
-      <directionalLight
-        position={[20, 40, 10]}
-        intensity={1.2}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-far={100}
-        shadow-camera-left={-50}
-        shadow-camera-right={50}
-        shadow-camera-top={-35}
-        shadow-camera-bottom={35}
-      />
-      <directionalLight
-        position={[-10, 20, -10]}
-        intensity={0.3}
-      />
-
-      {/* Sky color */}
       <color
         attach="background"
-        args={["#0a0a1a"]}
-      />
-      <fog
-        attach="fog"
-        args={["#0a0a1a", 60, 120]}
+        args={["#1e1e24"]}
       />
 
-      {/* Field */}
-      <Field />
+      {/* Lights */}
+      <ambientLight intensity={0.6} />
+      <directionalLight
+        position={[50, 80, 20]}
+        intensity={1.2}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-left={-FIELD_WIDTH / 2}
+        shadow-camera-right={FIELD_WIDTH / 2}
+        shadow-camera-top={FIELD_HEIGHT / 2}
+        shadow-camera-bottom={-FIELD_HEIGHT / 2}
+        shadow-camera-near={0.5}
+        shadow-camera-far={150}
+      />
+      {/* Soft fill light from opposite side */}
+      <directionalLight
+        position={[-50, 40, -20]}
+        intensity={0.4}
+      />
 
-      {/* Players */}
+      {/* Environment */}
+      <Field textureUrl={pitchTextureUrl} />
+      {room?.enableFeatures !== false && (
+        <>
+          <Obstacles />
+          <BoostPads latestRef={latestRef} />
+        </>
+      )}
+
+      {/* Entities */}
       <PlayerPool
         latestRef={latestRef}
         room={room}
         localPlayerPos={localPlayerPos}
       />
-
-      {/* PowerUps */}
       <PowerUpPool latestRef={latestRef} />
-
-      {/* Ball */}
       <Ball latestRef={latestRef} />
-
-      {/* Camera */}
       <CameraFollow
         latestRef={latestRef}
         localPlayerPos={localPlayerPos}

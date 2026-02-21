@@ -56,6 +56,9 @@ export default function Game() {
       return;
     }
 
+    // Read custom pitch texture
+    const pitchTexture = localStorage.getItem("bb-custom-pitch") || "";
+
     // ---- Re-join room to associate this socket with the room on server ----
     const nickname = sessionStorage.getItem("bb-nickname") || "Player";
     const rejoinRoom = () => {
@@ -265,6 +268,7 @@ export default function Game() {
         <GameScene
           latestRef={latestRef}
           room={room}
+          pitchTextureUrl={localStorage.getItem("bb-custom-pitch") || ""}
         />
       </Canvas>
 

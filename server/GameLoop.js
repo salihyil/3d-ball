@@ -26,9 +26,24 @@ const JUMP_FORCE = 20;
 const POWERUP_SPAWN_INTERVAL = 10;
 const POWERUP_RADIUS = 1.5;
 
+const FIELD_OBSTACLES = [
+  { id: "obs1", position: { x: -20, y: 0, z: -15 }, radius: 2.5, height: 10 },
+  { id: "obs2", position: { x: -20, y: 0, z: 15 }, radius: 2.5, height: 10 },
+  { id: "obs3", position: { x: 20, y: 0, z: -15 }, radius: 2.5, height: 10 },
+  { id: "obs4", position: { x: 20, y: 0, z: 15 }, radius: 2.5, height: 10 },
+];
+
+const FIELD_BOOST_PADS = [
+  { id: "pad1", position: { x: -10, y: 0.1, z: 0 }, radius: 3 },
+  { id: "pad2", position: { x: 10, y: 0.1, z: 0 }, radius: 3 },
+  { id: "pad3", position: { x: 0, y: 0.1, z: -15 }, radius: 3 },
+  { id: "pad4", position: { x: 0, y: 0.1, z: 15 }, radius: 3 },
+];
+
 export class GameLoop {
-  constructor(room, playerData) {
+  constructor(room, playerData, enableFeatures = true) {
     this.room = room;
+    this.enableFeatures = enableFeatures;
     this.interval = null;
     this.paused = false;
     this.tick = 0;
@@ -59,6 +74,15 @@ export class GameLoop {
     // Powerups
     this.powerUps = [];
     this.powerUpSpawnTimer = 0;
+
+    // Boost Pads
+    this.boostPads = this.enableFeatures
+      ? FIELD_BOOST_PADS.map((pad) => ({
+          id: pad.id,
+          active: true,
+          respawnTimer: 0,
+        }))
+      : [];
 
     // Previous snapshot for delta compression
     this.prevSnapshot = null;
@@ -162,6 +186,15 @@ export class GameLoop {
 
     this.powerUps = [];
     this.powerUpSpawnTimer = 0;
+
+    // Reset Boost Pads
+    this.boostPads = this.enableFeatures
+      ? FIELD_BOOST_PADS.map((pad) => ({
+          id: pad.id,
+          active: true,
+          respawnTimer: 0,
+        }))
+      : [];
   }
 
   removePlayer(id) {
@@ -203,6 +236,19 @@ export class GameLoop {
       this.powerUpSpawnTimer = 0;
     }
 
+    // Update boost pads
+    if (this.enableFeatures) {
+      for (const pad of this.boostPads) {
+        if (!pad.active) {
+          pad.respawnTimer -= DT;
+          if (pad.respawnTimer <= 0) {
+            pad.active = true;
+            pad.respawnTimer = 0;
+          }
+        }
+      }
+    }
+
     // 1. Apply player inputs
     this._updatePlayers();
 
@@ -213,6 +259,9 @@ export class GameLoop {
     this._checkPlayerBallCollisions();
     this._checkPlayerPlayerCollisions();
     this._checkPlayerPowerUpCollisions();
+    if (this.enableFeatures) {
+      this._checkPlayerBoostPadCollisions();
+    }
 
     // 4. Check goals
     this._checkGoals();
@@ -298,6 +347,32 @@ export class GameLoop {
       if (player.position.y < PLAYER_RADIUS) {
         player.position.y = PLAYER_RADIUS;
         player.velocity.y = 0;
+      }
+
+      // Obstacle collision (Circle vs Circle on XZ plane)
+      if (this.enableFeatures) {
+        for (const obs of FIELD_OBSTACLES) {
+          const dx = player.position.x - obs.position.x;
+          const dz = player.position.z - obs.position.z;
+          const distSq = dx * dx + dz * dz;
+          const minDist = PLAYER_RADIUS + obs.radius;
+          if (distSq < minDist * minDist && distSq > 0) {
+            const dist = Math.sqrt(distSq);
+            const overlap = minDist - dist;
+            const nx = dx / dist;
+            const nz = dz / dist;
+
+            player.position.x += nx * overlap;
+            player.position.z += nz * overlap;
+
+            // Bounce lightly
+            const dot = player.velocity.x * nx + player.velocity.z * nz;
+            if (dot < 0) {
+              player.velocity.x -= dot * nx * 1.2; // slight elastic response
+              player.velocity.z -= dot * nz * 1.2;
+            }
+          }
+        }
       }
 
       // Clamp to field bounds
@@ -395,6 +470,36 @@ export class GameLoop {
 
       if (Math.abs(this.ball.velocity.y) < 2) {
         this.ball.velocity.y = 0;
+      }
+    }
+
+    // Obstacle collision
+    if (this.enableFeatures) {
+      for (const obs of FIELD_OBSTACLES) {
+        const dx = this.ball.position.x - obs.position.x;
+        const dz = this.ball.position.z - obs.position.z;
+        const distSq = dx * dx + dz * dz;
+        const minDist = BALL_RADIUS + obs.radius;
+        // Note: check Y only if ball is lower than obstacle height
+        if (
+          this.ball.position.y - BALL_RADIUS < obs.height &&
+          distSq < minDist * minDist &&
+          distSq > 0
+        ) {
+          const dist = Math.sqrt(distSq);
+          const overlap = minDist - dist;
+          const nx = dx / dist;
+          const nz = dz / dist;
+
+          this.ball.position.x += nx * overlap;
+          this.ball.position.z += nz * overlap;
+
+          const dot = this.ball.velocity.x * nx + this.ball.velocity.z * nz;
+          if (dot < 0) {
+            this.ball.velocity.x -= dot * nx * (1 + WALL_BOUNCE);
+            this.ball.velocity.z -= dot * nz * (1 + WALL_BOUNCE);
+          }
+        }
       }
     }
 
@@ -580,6 +685,29 @@ export class GameLoop {
     }
   }
 
+  _checkPlayerBoostPadCollisions() {
+    for (const [id, player] of Object.entries(this.players)) {
+      for (let i = 0; i < this.boostPads.length; i++) {
+        const padState = this.boostPads[i];
+        if (!padState.active) continue;
+
+        const staticPad = FIELD_BOOST_PADS[i];
+        const dx = player.position.x - staticPad.position.x;
+        const dz = player.position.z - staticPad.position.z;
+        const distSq = dx * dx + dz * dz;
+        const hitDist = PLAYER_RADIUS + staticPad.radius;
+
+        if (distSq < hitDist * hitDist) {
+          // Player hit pad
+          padState.active = false;
+          padState.respawnTimer = 10; // 10 seconds to respawn
+          player.boostCooldown = 0;
+          player.boostRemaining = BOOST_DURATION; // Auto-activate boost!
+        }
+      }
+    }
+  }
+
   _checkGoals() {
     if (this.room.gameState !== "playing") return;
 
@@ -626,6 +754,7 @@ export class GameLoop {
       gameState: this.room.gameState,
       countdown, // Sent during exactly the 'countdown' state
       powerUps: this.powerUps.map((p) => ({ ...p })),
+      boostPads: this.boostPads.map((p) => ({ id: p.id, active: p.active })),
     };
 
     this.room.broadcastSnapshot(snapshot);

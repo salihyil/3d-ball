@@ -8,8 +8,8 @@ export interface Vec3 {
   z: number;
 }
 
-export type Team = 'blue' | 'red';
-export type GameState = 'lobby' | 'countdown' | 'playing' | 'goalScored' | 'ended';
+export type Team = "blue" | "red";
+export type GameState = "lobby" | "countdown" | "playing" | "goalScored" | "ended";
 
 export interface PlayerInfo {
   id: string;
@@ -18,7 +18,7 @@ export interface PlayerInfo {
   isHost: boolean;
 }
 
-export type PowerUpType = 'magnet' | 'freeze' | 'rocket' | 'frozen';
+export type PowerUpType = "magnet" | "freeze" | "rocket" | "frozen";
 
 export interface PowerUpItem {
   id: string;
@@ -43,6 +43,18 @@ export interface BallState {
   velocity: Vec3;
 }
 
+export interface Obstacle {
+  id: string;
+  position: Vec3;
+  radius: number;
+  height: number;
+}
+
+export interface BoostPadState {
+  id: string;
+  active: boolean;
+}
+
 export interface GameSnapshot {
   players: Record<string, PlayerState>;
   ball: BallState;
@@ -52,6 +64,7 @@ export interface GameSnapshot {
   tick: number;
   countdown?: number;
   powerUps: PowerUpItem[];
+  boostPads: BoostPadState[];
 }
 
 export interface RoomInfo {
@@ -60,35 +73,50 @@ export interface RoomInfo {
   hostId: string;
   matchDuration: number;
   gameState: GameState;
+  enableFeatures?: boolean;
 }
 
 export interface PlayerInput {
-  dx: number;     // -1 to 1
-  dz: number;     // -1 to 1
+  dx: number; // -1 to 1
+  dz: number; // -1 to 1
   boost: boolean;
-  jump: boolean;  // added jump
-  seq: number;    // sequence number for reconciliation
+  jump: boolean; // added jump
+  seq: number; // sequence number for reconciliation
 }
 
 // Socket.IO event types
 export interface ClientToServerEvents {
-  'create-room': (data: { nickname: string; matchDuration: number }, cb: (res: { roomId: string }) => void) => void;
-  'join-room': (data: { roomId: string; nickname: string }, cb: (res: { success: boolean; error?: string; room?: RoomInfo }) => void) => void;
-  'switch-team': (data: { team: Team }) => void;
-  'start-game': () => void;
-  'player-input': (data: PlayerInput) => void;
-  'leave-room': () => void;
+  "create-room": (
+    data: { nickname: string; matchDuration: number; enableFeatures?: boolean },
+    cb: (res: { roomId: string }) => void,
+  ) => void;
+  "join-room": (
+    data: { roomId: string; nickname: string },
+    cb: (res: { success: boolean; error?: string; room?: RoomInfo }) => void,
+  ) => void;
+  "switch-team": (
+    data: { team: Team },
+    cb: (res: { error?: string; success?: boolean }) => void,
+  ) => void;
+  "toggle-features": (data: { enableFeatures: boolean }) => void;
+  "start-game": () => void;
+  "player-input": (data: PlayerInput) => void;
+  "leave-room": () => void;
 }
 
 export interface ServerToClientEvents {
-  'room-update': (room: RoomInfo) => void;
-  'game-start': (data: { countdown: number }) => void;
-  'game-snapshot': (snapshot: GameSnapshot) => void;
-  'goal-scored': (data: { team: Team; scorer: string; score: { blue: number; red: number } }) => void;
-  'game-ended': (data: { score: { blue: number; red: number }; winner: Team | 'draw' }) => void;
-  'player-joined': (data: { nickname: string; team: Team }) => void;
-  'player-left': (data: { nickname: string }) => void;
-  'error': (data: { message: string }) => void;
+  "room-update": (room: RoomInfo) => void;
+  "game-start": (data: { countdown: number }) => void;
+  "game-snapshot": (snapshot: GameSnapshot) => void;
+  "goal-scored": (data: {
+    team: Team;
+    scorer: string;
+    score: { blue: number; red: number };
+  }) => void;
+  "game-ended": (data: { score: { blue: number; red: number }; winner: Team | "draw" }) => void;
+  "player-joined": (data: { nickname: string; team: Team }) => void;
+  "player-left": (data: { nickname: string }) => void;
+  error: (data: { message: string }) => void;
 }
 
 // Game constants
@@ -110,3 +138,18 @@ export const CLIENT_SEND_RATE = 20;
 export const MAX_PLAYERS_PER_TEAM = 5;
 export const COUNTDOWN_SECONDS = 3;
 export const GOAL_RESET_SECONDS = 2;
+
+// Static field features
+export const FIELD_OBSTACLES: Obstacle[] = [
+  { id: "obs1", position: { x: -20, y: 0, z: -15 }, radius: 2.5, height: 10 },
+  { id: "obs2", position: { x: -20, y: 0, z: 15 }, radius: 2.5, height: 10 },
+  { id: "obs3", position: { x: 20, y: 0, z: -15 }, radius: 2.5, height: 10 },
+  { id: "obs4", position: { x: 20, y: 0, z: 15 }, radius: 2.5, height: 10 },
+];
+
+export const FIELD_BOOST_PADS: { id: string; position: Vec3; radius: number }[] = [
+  { id: "pad1", position: { x: -10, y: 0.1, z: 0 }, radius: 3 },
+  { id: "pad2", position: { x: 10, y: 0.1, z: 0 }, radius: 3 },
+  { id: "pad3", position: { x: 0, y: 0.1, z: -15 }, radius: 3 },
+  { id: "pad4", position: { x: 0, y: 0.1, z: 15 }, radius: 3 },
+];

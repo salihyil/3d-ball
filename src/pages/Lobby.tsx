@@ -1,8 +1,30 @@
-import { useCallback, useEffect, useState } from "react";
+import { OrbitControls, Stage } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { BoostPads, Field, Obstacles } from "../components/GameScene";
 import { socket } from "../hooks/useNetwork";
 import { useSoundSettings } from "../hooks/useSoundSettings";
 import type { PlayerInfo, RoomInfo, Team } from "../types";
+
+const SAMPLE_TEXTURES = [
+  { id: "default", name: "Default Green", url: "" },
+  {
+    id: "grass",
+    name: "Lush Grass",
+    url: "/textures/grass.png",
+  },
+  {
+    id: "cyber",
+    name: "Cyber Grid",
+    url: "/textures/cyber.png",
+  },
+  {
+    id: "sand",
+    name: "Desert Sand",
+    url: "/textures/sand.png",
+  },
+];
 
 export default function Lobby() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -11,6 +33,10 @@ export default function Lobby() {
   const [copied, setCopied] = useState(false);
   const [hostLeft, setHostLeft] = useState(false);
   const { isSoundEnabled, toggleSound } = useSoundSettings();
+
+  const [pitchTexture, setPitchTexture] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dummyLatestRef = useRef(null);
 
   useEffect(() => {
     const nickname = sessionStorage.getItem("bb-nickname");
@@ -72,6 +98,11 @@ export default function Lobby() {
     navigate("/");
   }, [navigate]);
 
+  const handleToggleFeatures = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = e.target.checked;
+    socket.emit("toggle-features", { enableFeatures: enabled });
+  }, []);
+
   const handleCopyLink = useCallback(() => {
     const link = `${window.location.origin}/lobby/${roomId}`;
     navigator.clipboard.writeText(link).then(() => {
@@ -79,6 +110,19 @@ export default function Lobby() {
       setTimeout(() => setCopied(false), 2000);
     });
   }, [roomId]);
+
+  const handleTextureSelect = (url: string) => {
+    setPitchTexture(url);
+    localStorage.setItem("bb-custom-pitch", url);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      handleTextureSelect(url);
+    }
+  };
 
   if (hostLeft) {
     return (
@@ -129,10 +173,16 @@ export default function Lobby() {
         <div className="lobby-container">
           <div
             className="glass-card animate-in"
-            style={{ padding: "32px" }}>
+            style={{ padding: "24px", margin: "0 auto" }}>
             {/* Header */}
-            <div className="lobby-header">
-              <h2 className="lobby-title">Game Lobby</h2>
+            <div
+              className="lobby-header"
+              style={{ marginBottom: "16px" }}>
+              <h2
+                className="lobby-title"
+                style={{ fontSize: "24px" }}>
+                Game Lobby
+              </h2>
               <div className="lobby-room-code">
                 <span className="lobby-code">{roomId}</span>
                 <button
@@ -219,7 +269,169 @@ export default function Lobby() {
               </span>
             </div>
 
-            <div className="lobby-actions">
+            {/* Feature Customization */}
+            <div
+              style={{
+                marginTop: "16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 16px",
+                background: "rgba(0,0,0,0.2)",
+                borderRadius: "8px",
+              }}>
+              <input
+                type="checkbox"
+                id="enableFeatures"
+                checked={room.enableFeatures !== false}
+                onChange={handleToggleFeatures}
+                disabled={!isHost}
+                style={{ width: "18px", height: "18px", cursor: isHost ? "pointer" : "default" }}
+              />
+              <label
+                htmlFor="enableFeatures"
+                className="label"
+                style={{ marginBottom: 0, cursor: isHost ? "pointer" : "default" }}>
+                Sahada engeller ve güçlendiriciler olsun mu?
+              </label>
+            </div>
+
+            {/* Field Customization */}
+            <div
+              className="lobby-customization"
+              style={{
+                marginTop: "16px",
+                padding: "16px",
+                background: "rgba(0,0,0,0.2)",
+                borderRadius: "8px",
+              }}>
+              <div
+                style={{
+                  marginBottom: "12px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}>
+                <span className="label">Match Field Texture</span>
+                <button
+                  className="btn btn-outline"
+                  style={{ fontSize: "12px", padding: "4px 8px" }}
+                  onClick={() => fileInputRef.current?.click()}>
+                  Upload Custom Image
+                </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  style={{ display: "none" }}
+                  onChange={handleFileUpload}
+                />
+              </div>
+              <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "8px" }}>
+                {SAMPLE_TEXTURES.map((texture) => (
+                  <div
+                    key={texture.id}
+                    onClick={() => handleTextureSelect(texture.url)}
+                    style={{
+                      cursor: "pointer",
+                      width: "60px",
+                      height: "40px",
+                      borderRadius: "4px",
+                      border:
+                        pitchTexture === texture.url
+                          ? "2px solid #ffaa00"
+                          : "2px solid transparent",
+                      background: texture.url
+                        ? `url(${texture.url}) center/cover`
+                        : "var(--field-color, #1a5c2a)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "10px",
+                      textShadow: "1px 1px 2px rgba(0,0,0,0.8)",
+                      flexShrink: 0,
+                    }}
+                    title={texture.name}>
+                    {!texture.url && "Default"}
+                  </div>
+                ))}
+
+                {pitchTexture && !SAMPLE_TEXTURES.find((t) => t.url === pitchTexture) && (
+                  <div
+                    style={{
+                      cursor: "pointer",
+                      width: "60px",
+                      height: "40px",
+                      borderRadius: "4px",
+                      border: "2px solid var(--accent)",
+                      background: `url(${pitchTexture}) center/cover`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "10px",
+                      flexShrink: 0,
+                    }}
+                    title="Custom Upload"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 3D Preview Section */}
+            <div
+              style={{
+                marginTop: "16px",
+                height: "200px",
+                background: "#0a0a0a",
+                borderRadius: "8px",
+                overflow: "hidden",
+                position: "relative",
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}>
+              <div
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  left: "10px",
+                  background: "rgba(0,0,0,0.6)",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  zIndex: 10,
+                  pointerEvents: "none",
+                }}>
+                Field Preview
+              </div>
+              <Canvas camera={{ position: [20, 20, 20], fov: 45 }}>
+                <ambientLight intensity={0.5} />
+                <pointLight
+                  position={[10, 10, 10]}
+                  intensity={1}
+                />
+                <Stage
+                  environment="city"
+                  intensity={0.5}>
+                  <Field textureUrl={pitchTexture} />
+                  {room.enableFeatures !== false ? (
+                    <>
+                      <Obstacles />
+                      <BoostPads latestRef={dummyLatestRef} />
+                    </>
+                  ) : null}
+                </Stage>
+                <OrbitControls
+                  autoRotate
+                  autoRotateSpeed={0.5}
+                  enableZoom={false}
+                  enablePan={false}
+                  maxPolarAngle={Math.PI / 2.1}
+                />
+              </Canvas>
+            </div>
+
+            <div
+              className="lobby-actions"
+              style={{ marginTop: "24px" }}>
               <button
                 className="btn btn-outline"
                 onClick={handleLeave}>

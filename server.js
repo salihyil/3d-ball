@@ -77,13 +77,13 @@ io.on("connection", (socket) => {
 
   // ---- Create Room ----
   socket.on("create-room", (data, callback) => {
-    const { nickname, matchDuration } = data;
+    const { nickname, matchDuration, enableFeatures } = data;
     if (!nickname || nickname.length < 1 || nickname.length > 16) {
       return callback({ roomId: null, error: "Invalid nickname" });
     }
 
     const roomId = uuidv4().slice(0, 8);
-    const room = new Room(roomId, matchDuration, io);
+    const room = new Room(roomId, matchDuration, io, enableFeatures ?? true);
     rooms.set(roomId, room);
 
     room.addPlayer(socket, nickname, true);
@@ -154,7 +154,16 @@ io.on("connection", (socket) => {
     callback?.({ success: true });
   });
 
-  // ---- Start Game ----
+  socket.on("toggle-features", (data) => {
+    if (!currentRoomId) return;
+    const room = rooms.get(currentRoomId);
+    if (!room || room._getHostId() !== socket.id) return;
+
+    room.enableFeatures = data.enableFeatures;
+    io.to(currentRoomId).emit("room-update", room.getRoomInfo());
+  });
+
+  // ---- Game Flow ----
   socket.on("start-game", () => {
     if (!currentRoomId) return;
     const room = rooms.get(currentRoomId);
