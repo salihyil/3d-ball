@@ -6,7 +6,10 @@ import de from './locales/de.json';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import fr from './locales/fr.json';
+import ja from './locales/ja.json';
+import ko from './locales/ko.json';
 import tr from './locales/tr.json';
+import zh from './locales/zh.json';
 
 i18next
   .use(LanguageDetector)
@@ -18,6 +21,9 @@ i18next
       de: { translation: de },
       fr: { translation: fr },
       es: { translation: es },
+      zh: { translation: zh },
+      ja: { translation: ja },
+      ko: { translation: ko },
     },
     fallbackLng: 'en',
     interpolation: {
