@@ -26,10 +26,20 @@ export class Room {
 
   addPlayer(socket, nickname, isHost) {
     const team = this._getSmallestTeam();
+
+    // Safety: ensure only one host exists if isHost is requested
+    let assignedHostStatus = isHost;
+    if (isHost && this._getHostId()) {
+      console.log(
+        `[ROOM] ${this.roomId} Already has a host. Denying host status for "${nickname}" during join.`
+      );
+      assignedHostStatus = false;
+    }
+
     const player = {
       nickname,
       team,
-      isHost,
+      isHost: assignedHostStatus,
       socket,
     };
     this.players.set(socket.id, player);
@@ -291,10 +301,18 @@ export class Room {
   reclaimHost(socketId) {
     const player = this.players.get(socketId);
     if (player) {
-      player.isHost = true;
-      console.log(
-        `[ROOM] ${this.roomId} Host reclaimed by "${player.nickname}"`
-      );
+      // Safety: only allow reclamation if NO current host exists
+      if (!this._getHostId() || this._getHostId() === socketId) {
+        player.isHost = true;
+        console.log(
+          `[ROOM] ${this.roomId} Host reclaimed by "${player.nickname}"`
+        );
+      } else {
+        console.log(
+          `[ROOM] ${this.roomId} Host reclamation denied for "${player.nickname}" - Room already has a host (${this._getHostId()})`
+        );
+        player.isHost = false; // Just in case it was true
+      }
     }
   }
 }
