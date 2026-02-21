@@ -7,7 +7,7 @@ import { BoostPads, Field, Obstacles } from '../components/GameScene';
 import LanguageSelector from '../components/LanguageSelector';
 import { socket } from '../hooks/useNetwork';
 import { useSoundSettings } from '../hooks/useSoundSettings';
-import type { PlayerInfo, RoomInfo, Team } from '../types';
+import type { GameSnapshot, PlayerInfo, RoomInfo, Team } from '../types';
 
 const SAMPLE_TEXTURES = [
   { id: 'default', name: 'Default Green', url: '' },
@@ -39,7 +39,7 @@ export default function Lobby() {
 
   const [pitchTexture, setPitchTexture] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dummyLatestRef = useRef(null);
+  const dummyLatestRef = useRef<GameSnapshot | null>(null);
 
   useEffect(() => {
     const nickname = sessionStorage.getItem('bb-nickname');
@@ -493,7 +493,7 @@ export default function Lobby() {
                     <Field textureUrl={pitchTexture} />
                     {room.enableFeatures !== false ? (
                       <>
-                        <Obstacles />
+                        <Obstacles latestRef={dummyLatestRef} />
                         <BoostPads latestRef={dummyLatestRef} />
                       </>
                     ) : null}

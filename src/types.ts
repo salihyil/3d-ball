@@ -70,6 +70,7 @@ export interface GameSnapshot {
   countdown?: number;
   powerUps: PowerUpItem[];
   boostPads: BoostPadState[];
+  obstacles: Obstacle[];
 }
 
 export interface RoomInfo {

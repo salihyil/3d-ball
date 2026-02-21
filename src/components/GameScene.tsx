@@ -770,11 +770,35 @@ const obstacleMaterial = new THREE.MeshStandardMaterial({
   emissiveIntensity: 0.5,
 });
 
-export function Obstacles() {
+export function Obstacles({
+  latestRef,
+}: {
+  latestRef: MutableRefObject<GameSnapshot | null>;
+}) {
+  const groupRefs = useRef<(THREE.Group | null)[]>([]);
+
+  useFrame(() => {
+    const snapshot = latestRef.current;
+    if (!snapshot || !snapshot.obstacles) return;
+
+    snapshot.obstacles.forEach((obs, i) => {
+      const group = groupRefs.current[i];
+      if (group) {
+        group.position.set(obs.position.x, 0, obs.position.z);
+      }
+    });
+  });
+
   return (
     <group>
-      {FIELD_OBSTACLES.map((obs) => (
-        <group key={obs.id} position={[obs.position.x, 0, obs.position.z]}>
+      {FIELD_OBSTACLES.map((obs, i) => (
+        <group
+          key={obs.id}
+          ref={(r) => {
+            groupRefs.current[i] = r;
+          }}
+          position={[obs.position.x, 0, obs.position.z]}
+        >
           <mesh position={[0, obs.height / 2, 0]} castShadow receiveShadow>
             <cylinderGeometry args={[obs.radius, obs.radius, obs.height, 32]} />
             <primitive object={obstacleMaterial} attach="material" />
@@ -918,7 +942,7 @@ export default function GameScene({
       <Field textureUrl={pitchTextureUrl} />
       {room?.enableFeatures !== false ? (
         <>
-          <Obstacles />
+          <Obstacles latestRef={latestRef} />
           <BoostPads latestRef={latestRef} />
         </>
       ) : null}

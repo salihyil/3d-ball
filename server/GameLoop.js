@@ -22,6 +22,7 @@ const TICK_RATE = 30;
 const DT = 1 / TICK_RATE;
 const GRAVITY = -40;
 const JUMP_FORCE = 20;
+const OBSTACLE_SPEED = 5;
 
 const POWERUP_SPAWN_INTERVAL = 10;
 const POWERUP_RADIUS = 1.5;
@@ -81,6 +82,14 @@ export class GameLoop {
           id: pad.id,
           active: true,
           respawnTimer: 0,
+        }))
+      : [];
+
+    // Static obstacles made dynamic
+    this.obstacles = this.enableFeatures
+      ? FIELD_OBSTACLES.map((obs) => ({
+          ...obs,
+          position: { ...obs.position },
         }))
       : [];
 
@@ -253,6 +262,18 @@ export class GameLoop {
       }
     }
 
+    // Update obstacles
+    if (this.enableFeatures) {
+      for (const obs of this.obstacles) {
+        obs.position.z += OBSTACLE_SPEED * DT;
+        // Wrap around logic
+        const halfH = FIELD_HEIGHT / 2;
+        if (obs.position.z > halfH) {
+          obs.position.z = -halfH;
+        }
+      }
+    }
+
     // 1. Apply player inputs
     this._updatePlayers();
 
@@ -359,7 +380,7 @@ export class GameLoop {
 
       // Obstacle collision (Circle vs Circle on XZ plane)
       if (this.enableFeatures) {
-        for (const obs of FIELD_OBSTACLES) {
+        for (const obs of this.obstacles) {
           const dx = player.position.x - obs.position.x;
           const dz = player.position.z - obs.position.z;
           const distSq = dx * dx + dz * dz;
@@ -507,7 +528,7 @@ export class GameLoop {
 
     // Obstacle collision
     if (this.enableFeatures) {
-      for (const obs of FIELD_OBSTACLES) {
+      for (const obs of this.obstacles) {
         const dx = this.ball.position.x - obs.position.x;
         const dz = this.ball.position.z - obs.position.z;
         const distSq = dx * dx + dz * dz;
@@ -804,11 +825,12 @@ export class GameLoop {
         },
       },
       score: { ...this.room.score },
-      timeRemaining: this.room.timeRemaining,
+      timeRemaining: Math.max(0, this.room.matchDuration - this.elapsed),
       gameState: this.room.gameState,
-      countdown, // Sent during exactly the 'countdown' state
+      countdown,
       powerUps: this.powerUps.map((p) => ({ ...p })),
       boostPads: this.boostPads.map((p) => ({ id: p.id, active: p.active })),
+      obstacles: this.obstacles.map((o) => ({ ...o })),
     };
 
     this.room.broadcastSnapshot(snapshot);
