@@ -510,10 +510,17 @@ function FieldContent({ texture }: { texture?: THREE.Texture | null }) {
   );
 }
 
-export function Field({ textureUrl }: { textureUrl?: string }) {
+export function Field({ textureUrl }: { textureUrl?: string | null }) {
+  // If no textureUrl is provided or it's 'none', Fallback to null
+  const isValidTexture = textureUrl && textureUrl !== "none" && textureUrl.trim() !== "";
+
   return (
     <Suspense fallback={<FieldContent texture={null} />}>
-      {textureUrl ? <FieldWithTexture textureUrl={textureUrl} /> : <FieldContent texture={null} />}
+      {isValidTexture ? (
+        <FieldWithTexture textureUrl={textureUrl} />
+      ) : (
+        <FieldContent texture={null} />
+      )}
     </Suspense>
   );
 }

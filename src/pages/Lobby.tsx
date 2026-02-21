@@ -113,7 +113,11 @@ export default function Lobby() {
 
   const handleTextureSelect = (url: string) => {
     setPitchTexture(url);
-    localStorage.setItem("bb-custom-pitch", url);
+    if (!url || url === "" || url === "none") {
+      localStorage.setItem("bb-custom-pitch", "none");
+    } else {
+      localStorage.setItem("bb-custom-pitch", url);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
