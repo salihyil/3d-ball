@@ -2,7 +2,7 @@
 // Room — manages players, teams, game state, timer
 // ============================================================
 
-import { GameLoop } from "./GameLoop.js";
+import { GameLoop } from './GameLoop.js';
 
 const MAX_PLAYERS_PER_TEAM = 5;
 const COUNTDOWN_SECONDS = 3;
@@ -15,11 +15,12 @@ export class Room {
     this.io = io;
     this.enableFeatures = enableFeatures;
     this.players = new Map(); // socketId → { nickname, team, isHost }
-    this.gameState = "lobby";
+    this.gameState = 'lobby';
     this.score = { blue: 0, red: 0 };
     this.timeRemaining = this.matchDuration;
     this.gameLoop = null;
     this.lastActivity = Date.now();
+    this.fieldTexture = '';
   }
 
   addPlayer(socket, nickname, isHost) {
@@ -57,7 +58,7 @@ export class Room {
     if (!player) return;
 
     // Only add if not already in the game loop
-    if (this.gameLoop && this.gameState !== "lobby") {
+    if (this.gameLoop && this.gameState !== 'lobby') {
       if (!this.gameLoop.players[socketId]) {
         this.gameLoop.addPlayer(socketId, player.team);
       }
@@ -66,14 +67,14 @@ export class Room {
 
   switchTeam(socketId, team) {
     const player = this.players.get(socketId);
-    if (!player) return { error: "Player not found" };
-    if (team !== "blue" && team !== "red") return { error: "Invalid team" };
+    if (!player) return { error: 'Player not found' };
+    if (team !== 'blue' && team !== 'red') return { error: 'Invalid team' };
 
     if (player.team === team) return { success: true }; // No change
 
     // Check team limits before allowing switch
     if (this.getTeamCount(team) >= MAX_PLAYERS_PER_TEAM) {
-      return { error: "Team is full (5/5 players)" };
+      return { error: 'Team is full (5/5 players)' };
     }
 
     player.team = team;
@@ -84,19 +85,19 @@ export class Room {
       // Reposition them instantly to their new team's side
       const zOffset = (Math.random() - 0.5) * 10;
       this.gameLoop.players[socketId].position = {
-        x: team === "blue" ? -20 : 20,
+        x: team === 'blue' ? -20 : 20,
         y: 0.5,
         z: zOffset,
       };
       this.gameLoop.players[socketId].velocity = { x: 0, y: 0, z: 0 };
     }
 
-    this.io.to(this.roomId).emit("room-update", this.getRoomInfo());
+    this.io.to(this.roomId).emit('room-update', this.getRoomInfo());
     return { success: true };
   }
 
   startGame() {
-    this.gameState = "countdown";
+    this.gameState = 'countdown';
     this.score = { blue: 0, red: 0 };
     this.matchStartTime = Date.now() + 5000; // 5 seconds total countdown wait
     this.timeRemaining = this.matchDuration;
@@ -111,14 +112,14 @@ export class Room {
     this.gameLoop.resetPositions();
 
     // Broadcast navigation signal with countdown data
-    this.io.to(this.roomId).emit("game-start", { countdown: 5 });
+    this.io.to(this.roomId).emit('game-start', { countdown: 5 });
 
     // Start physics loop immediately to broadcast the countdown at 30Hz
     this.gameLoop.start();
 
     setTimeout(() => {
-      if (this.gameState === "countdown") {
-        this.gameState = "playing";
+      if (this.gameState === 'countdown') {
+        this.gameState = 'playing';
       }
     }, 5000);
   }
@@ -132,19 +133,19 @@ export class Room {
   onGoalScored(team, scorerId) {
     this.score[team]++;
     const scorer = this.players.get(scorerId);
-    const scorerName = scorer ? scorer.nickname : "Unknown";
+    const scorerName = scorer ? scorer.nickname : 'Unknown';
 
-    this.gameState = "goalScored";
+    this.gameState = 'goalScored';
 
-    this.io.to(this.roomId).emit("goal-scored", {
+    this.io.to(this.roomId).emit('goal-scored', {
       team,
       scorer: scorerName,
       score: { ...this.score },
     });
 
     setTimeout(() => {
-      if (this.gameState === "goalScored") {
-        this.gameState = "playing";
+      if (this.gameState === 'goalScored') {
+        this.gameState = 'playing';
         this.gameLoop.resetPositions();
       }
     }, GOAL_RESET_SECONDS * 1000);
@@ -161,28 +162,32 @@ export class Room {
     snapshot.score = { ...this.score };
     snapshot.timeRemaining = this.timeRemaining;
     snapshot.gameState = this.gameState;
-    this.io.to(this.roomId).emit("game-snapshot", snapshot);
+    this.io.to(this.roomId).emit('game-snapshot', snapshot);
   }
 
   _endGame() {
-    this.gameState = "ended";
+    this.gameState = 'ended';
     if (this.gameLoop) {
       this.gameLoop.stop();
       this.gameLoop = null;
     }
 
     const winner =
-      this.score.blue > this.score.red ? "blue" : this.score.red > this.score.blue ? "red" : "draw";
+      this.score.blue > this.score.red
+        ? 'blue'
+        : this.score.red > this.score.blue
+          ? 'red'
+          : 'draw';
 
-    this.io.to(this.roomId).emit("game-ended", {
+    this.io.to(this.roomId).emit('game-ended', {
       score: { ...this.score },
       winner,
     });
 
     // Reset to lobby after 5s
     setTimeout(() => {
-      this.gameState = "lobby";
-      this.io.to(this.roomId).emit("room-update", this.getRoomInfo());
+      this.gameState = 'lobby';
+      this.io.to(this.roomId).emit('room-update', this.getRoomInfo());
     }, 5000);
   }
 
@@ -209,17 +214,18 @@ export class Room {
       matchDuration: this.matchDuration / 60,
       gameState: this.gameState,
       enableFeatures: this.enableFeatures,
+      fieldTexture: this.fieldTexture,
     };
   }
 
   getPlayerTeam(socketId) {
     const p = this.players.get(socketId);
-    return p ? p.team : "blue";
+    return p ? p.team : 'blue';
   }
 
   getPlayerNickname(socketId) {
     const p = this.players.get(socketId);
-    return p ? p.nickname : "Unknown";
+    return p ? p.nickname : 'Unknown';
   }
 
   getTeamCount(team) {
@@ -258,8 +264,8 @@ export class Room {
   }
 
   _getSmallestTeam() {
-    const blue = this.getTeamCount("blue");
-    const red = this.getTeamCount("red");
-    return blue <= red ? "blue" : "red";
+    const blue = this.getTeamCount('blue');
+    const red = this.getTeamCount('red');
+    return blue <= red ? 'blue' : 'red';
   }
 }

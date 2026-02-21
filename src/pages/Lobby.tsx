@@ -122,21 +122,33 @@ export default function Lobby() {
   }, [roomId]);
 
   const handleTextureSelect = (url: string) => {
+    if (!isHost) return;
     setPitchTexture(url);
     if (!url || url === '' || url === 'none') {
       localStorage.setItem('bb-custom-pitch', 'none');
     } else {
       localStorage.setItem('bb-custom-pitch', url);
     }
+    socket.emit('set-field-texture', { fieldTexture: url });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isHost) return;
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
       handleTextureSelect(url);
     }
   };
+
+  useEffect(() => {
+    if (
+      room?.fieldTexture !== undefined &&
+      room.fieldTexture !== pitchTexture
+    ) {
+      setPitchTexture(room.fieldTexture);
+    }
+  }, [room?.fieldTexture, pitchTexture]);
 
   if (hostLeft) {
     return (
@@ -365,8 +377,14 @@ export default function Lobby() {
                 <span className="label">{t('lobby.field_texture')}</span>
                 <button
                   className="btn btn-outline"
-                  style={{ fontSize: '12px', padding: '4px 8px' }}
-                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    fontSize: '12px',
+                    padding: '4px 8px',
+                    opacity: isHost ? 1 : 0.5,
+                    cursor: isHost ? 'pointer' : 'not-allowed',
+                  }}
+                  onClick={() => isHost && fileInputRef.current?.click()}
+                  disabled={!isHost}
                 >
                   {t('lobby.upload_custom')}
                 </button>
@@ -391,7 +409,7 @@ export default function Lobby() {
                     key={texture.id}
                     onClick={() => handleTextureSelect(texture.url)}
                     style={{
-                      cursor: 'pointer',
+                      cursor: isHost ? 'pointer' : 'default',
                       width: '60px',
                       height: '40px',
                       borderRadius: '4px',

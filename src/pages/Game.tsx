@@ -294,7 +294,7 @@ export default function Game() {
           <GameScene
             latestRef={latestRef}
             room={room}
-            pitchTextureUrl={localStorage.getItem('bb-custom-pitch') || ''}
+            pitchTextureUrl={room?.fieldTexture || ''}
           />
         </Suspense>
       </Canvas>
