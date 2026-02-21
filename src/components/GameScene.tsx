@@ -1,9 +1,16 @@
-import { Text, useTexture } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import { MutableRefObject, Suspense, memo, useEffect, useMemo, useRef } from "react";
-import * as THREE from "three";
-import { socket } from "../hooks/useNetwork";
-import type { GameSnapshot, PlayerState } from "../types";
+import { Text, useTexture } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import {
+  MutableRefObject,
+  Suspense,
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
+import * as THREE from 'three';
+import { socket } from '../hooks/useNetwork';
+import type { GameSnapshot, PlayerState } from '../types';
 import {
   BALL_RADIUS,
   FIELD_BOOST_PADS,
@@ -13,12 +20,12 @@ import {
   GOAL_DEPTH,
   GOAL_WIDTH,
   PLAYER_RADIUS,
-} from "../types";
-import { AudioManager } from "../utils/AudioManager";
+} from '../types';
+import { AudioManager } from '../utils/AudioManager';
 
 interface GameSceneProps {
   latestRef: MutableRefObject<GameSnapshot | null>;
-  room: import("../types").RoomInfo | null;
+  room: import('../types').RoomInfo | null;
   pitchTextureUrl?: string;
 }
 
@@ -96,19 +103,22 @@ function PlayerPool({
   localPlayerPos,
 }: {
   latestRef: MutableRefObject<GameSnapshot | null>;
-  room: import("../types").RoomInfo | null;
+  room: import('../types').RoomInfo | null;
   localPlayerPos: MutableRefObject<THREE.Vector3>;
 }) {
   const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(MAX_POOL).fill(null));
   const nameRefs = useRef<(THREE.Group | null)[]>(Array(MAX_POOL).fill(null));
-  const textRefs = useRef<any[]>(Array(MAX_POOL).fill(null));
+  // Minimal interface for Troika text from @react-three/drei
+  const textRefs = useRef<{ text: string; sync?: () => void }[]>(
+    Array(MAX_POOL).fill(null)
+  );
   const auraRefs = useRef<(THREE.Mesh | null)[]>(Array(MAX_POOL).fill(null));
 
   const targetPositions = useRef<THREE.Vector3[]>(
-    Array.from({ length: MAX_POOL }, () => new THREE.Vector3()),
+    Array.from({ length: MAX_POOL }, () => new THREE.Vector3())
   );
   const targetVelocities = useRef<THREE.Vector3[]>(
-    Array.from({ length: MAX_POOL }, () => new THREE.Vector3()),
+    Array.from({ length: MAX_POOL }, () => new THREE.Vector3())
   );
   const lastTickRef = useRef<number>(-1);
 
@@ -132,15 +142,26 @@ function PlayerPool({
         mesh.visible = true;
 
         // Set correct material based on team from snapshot
-        mesh.material = p.team === "red" ? redMaterial : blueMaterial;
+        mesh.material = p.team === 'red' ? redMaterial : blueMaterial;
 
         if (isNewTick) {
           // Authoritative update from server
-          targetPositions.current[i].set(p.position.x, p.position.y, p.position.z);
-          targetVelocities.current[i].set(p.velocity.x, p.velocity.y, p.velocity.z);
+          targetPositions.current[i].set(
+            p.position.x,
+            p.position.y,
+            p.position.z
+          );
+          targetVelocities.current[i].set(
+            p.velocity.x,
+            p.velocity.y,
+            p.velocity.z
+          );
         } else {
           // Dead reckoning: advance target smoothly between server ticks
-          targetPositions.current[i].addScaledVector(targetVelocities.current[i], delta);
+          targetPositions.current[i].addScaledVector(
+            targetVelocities.current[i],
+            delta
+          );
         }
 
         // Tightly lerp mesh to the extrapolated target for buttery smoothness
@@ -159,7 +180,8 @@ function PlayerPool({
 
           // Force text update if it changed
           const troikaText = textRefs.current[i];
-          const nickname = room?.players.find((pl) => pl.id === id)?.nickname || "Player";
+          const nickname =
+            room?.players.find((pl) => pl.id === id)?.nickname || 'Player';
           if (troikaText && troikaText.text !== nickname) {
             troikaText.text = nickname;
             if (troikaText.sync) troikaText.sync();
@@ -176,7 +198,7 @@ function PlayerPool({
             aura.visible = true;
             aura.position.copy(mesh.position);
 
-            if (p.activePowerUp.type === "frozen") {
+            if (p.activePowerUp.type === 'frozen') {
               // Show as an ice block around player
               aura.geometry = powerUpGeometry; // 2x2x2 cube
               aura.material = powerUpMaterials.frozen;
@@ -226,7 +248,8 @@ function PlayerPool({
             ref={(r) => {
               nameRefs.current[i] = r;
             }}
-            visible={false}>
+            visible={false}
+          >
             <Text
               ref={(r) => {
                 textRefs.current[i] = r;
@@ -238,8 +261,9 @@ function PlayerPool({
               outlineColor="black"
               outlineWidth={0.05}
               font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.ttf"
-              fontWeight={800}>
-              {" "}
+              fontWeight={800}
+            >
+              {' '}
             </Text>
           </group>
           <mesh
@@ -257,8 +281,14 @@ function PlayerPool({
 // ---- PowerUps ----
 const MAX_POWERUPS = 5;
 
-function PowerUpPool({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> }) {
-  const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(MAX_POWERUPS).fill(null));
+function PowerUpPool({
+  latestRef,
+}: {
+  latestRef: MutableRefObject<GameSnapshot | null>;
+}) {
+  const meshRefs = useRef<(THREE.Mesh | null)[]>(
+    Array(MAX_POWERUPS).fill(null)
+  );
 
   useFrame((state) => {
     const snapshot = latestRef.current;
@@ -276,7 +306,7 @@ function PowerUpPool({ latestRef }: { latestRef: MutableRefObject<GameSnapshot |
         mesh.position.set(
           items[i].position.x,
           items[i].position.y + Math.sin(time * 3 + i) * 0.5,
-          items[i].position.z,
+          items[i].position.z
         );
         mesh.rotation.x = time + i;
         mesh.rotation.y = time + i;
@@ -305,7 +335,11 @@ function PowerUpPool({ latestRef }: { latestRef: MutableRefObject<GameSnapshot |
 }
 
 // ---- Ball ----
-function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> }) {
+function Ball({
+  latestRef,
+}: {
+  latestRef: MutableRefObject<GameSnapshot | null>;
+}) {
   const meshRef = useRef<THREE.Mesh>(null);
   const targetPos = useRef(new THREE.Vector3(0, BALL_RADIUS, 0));
   const targetVel = useRef(new THREE.Vector3(0, 0, 0));
@@ -317,7 +351,10 @@ function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> 
   const trailIndex = useRef(0);
   const trailGeo = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(30 * 3), 3));
+    geo.setAttribute(
+      'position',
+      new THREE.BufferAttribute(new Float32Array(30 * 3), 3)
+    );
     return geo;
   }, []);
 
@@ -334,7 +371,8 @@ function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> 
         const deltaVMagSq = dvx * dvx + dvz * dvz;
 
         if (deltaVMagSq > 50) {
-          const newMagSq = snapshot.ball.velocity.x ** 2 + snapshot.ball.velocity.z ** 2;
+          const newMagSq =
+            snapshot.ball.velocity.x ** 2 + snapshot.ball.velocity.z ** 2;
           const prevMagSq = targetVel.current.x ** 2 + targetVel.current.z ** 2;
           const intensity = Math.min(1, Math.sqrt(newMagSq) / 40);
 
@@ -352,12 +390,12 @@ function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> 
       targetPos.current.set(
         snapshot.ball.position.x,
         snapshot.ball.position.y,
-        snapshot.ball.position.z,
+        snapshot.ball.position.z
       );
       targetVel.current.set(
         snapshot.ball.velocity.x,
         snapshot.ball.velocity.y,
-        snapshot.ball.velocity.z,
+        snapshot.ball.velocity.z
       );
     } else {
       // Extrapolate
@@ -383,7 +421,7 @@ function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> 
       pos[idx + 2] = meshRef.current.position.z;
       trailIndex.current++;
 
-      const attr = trailGeo.getAttribute("position") as THREE.BufferAttribute;
+      const attr = trailGeo.getAttribute('position') as THREE.BufferAttribute;
       attr.array = pos;
       attr.needsUpdate = true;
     }
@@ -398,9 +436,7 @@ function Ball({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> 
         castShadow
         position={[0, BALL_RADIUS, 0]}
       />
-      <points
-        ref={trailRef}
-        geometry={trailGeo}>
+      <points ref={trailRef} geometry={trailGeo}>
         <pointsMaterial
           color={0xffffff}
           size={0.3}
@@ -434,13 +470,25 @@ function CameraFollow({
       targetPos.current.set(
         localPlayerPos.current.x + offset.current.x,
         offset.current.y,
-        localPlayerPos.current.z + offset.current.z,
+        localPlayerPos.current.z + offset.current.z
       );
-      lookTarget.current.set(localPlayerPos.current.x, 0, localPlayerPos.current.z);
+      lookTarget.current.set(
+        localPlayerPos.current.x,
+        0,
+        localPlayerPos.current.z
+      );
     } else {
       // Spectator: look at ball
-      targetPos.current.set(snapshot.ball.position.x, 35, snapshot.ball.position.z + 35);
-      lookTarget.current.set(snapshot.ball.position.x, 0, snapshot.ball.position.z);
+      targetPos.current.set(
+        snapshot.ball.position.x,
+        35,
+        snapshot.ball.position.z + 35
+      );
+      lookTarget.current.set(
+        snapshot.ball.position.x,
+        0,
+        snapshot.ball.position.z
+      );
     }
 
     camera.position.lerp(targetPos.current, Math.min(1, delta * 15));
@@ -451,7 +499,11 @@ function CameraFollow({
 }
 
 // ---- Field ----
-const FieldWithTexture = memo(function FieldWithTexture({ textureUrl }: { textureUrl: string }) {
+const FieldWithTexture = memo(function FieldWithTexture({
+  textureUrl,
+}: {
+  textureUrl: string;
+}) {
   const texture = useTexture(textureUrl);
 
   useEffect(() => {
@@ -475,10 +527,7 @@ function FieldContent({ texture }: { texture?: THREE.Texture | null }) {
   return (
     <group>
       {/* Ground plane */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0, 0]}
-        receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[FIELD_WIDTH + 10, FIELD_HEIGHT + 10]} />
         <meshStandardMaterial
           color={texture ? 0xffffff : FIELD_COLOR}
@@ -488,31 +537,21 @@ function FieldContent({ texture }: { texture?: THREE.Texture | null }) {
       </mesh>
 
       {/* Field lines */}
-      <FieldLines
-        halfW={halfW}
-        halfH={halfH}
-        goalHalf={goalHalf}
-      />
+      <FieldLines halfW={halfW} halfH={halfH} goalHalf={goalHalf} />
 
       {/* Walls */}
-      <Walls
-        halfW={halfW}
-        halfH={halfH}
-        goalHalf={goalHalf}
-      />
+      <Walls halfW={halfW} halfH={halfH} goalHalf={goalHalf} />
 
       {/* Goals */}
-      <Goals
-        halfW={halfW}
-        goalHalf={goalHalf}
-      />
+      <Goals halfW={halfW} goalHalf={goalHalf} />
     </group>
   );
 }
 
 export function Field({ textureUrl }: { textureUrl?: string | null }) {
   // If no textureUrl is provided or it's 'none', Fallback to null
-  const isValidTexture = textureUrl && textureUrl !== "none" && textureUrl.trim() !== "";
+  const isValidTexture =
+    textureUrl && textureUrl !== 'none' && textureUrl.trim() !== '';
 
   return (
     <Suspense fallback={<FieldContent texture={null} />}>
@@ -537,58 +576,51 @@ function FieldLines({
   return (
     <group>
       {/* Center line */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.01, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
         <planeGeometry args={[0.15, FIELD_HEIGHT]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
 
       {/* Center circle */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.01, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
         <ringGeometry args={[7.9, 8.1, 48]} />
-        <meshBasicMaterial
-          color={FIELD_LINE_COLOR}
-          side={THREE.DoubleSide}
-        />
+        <meshBasicMaterial color={FIELD_LINE_COLOR} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Border lines */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.01, -halfH]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -halfH]}>
+        <planeGeometry args={[FIELD_WIDTH, 0.15]} />
+        <meshBasicMaterial color={FIELD_LINE_COLOR} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, halfH]}>
         <planeGeometry args={[FIELD_WIDTH, 0.15]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.01, halfH]}>
-        <planeGeometry args={[FIELD_WIDTH, 0.15]} />
-        <meshBasicMaterial color={FIELD_LINE_COLOR} />
-      </mesh>
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[-halfW, 0.01, -(halfH + goalHalf) / 2]}>
+        position={[-halfW, 0.01, -(halfH + goalHalf) / 2]}
+      >
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[-halfW, 0.01, (halfH + goalHalf) / 2]}>
+        position={[-halfW, 0.01, (halfH + goalHalf) / 2]}
+      >
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[halfW, 0.01, -(halfH + goalHalf) / 2]}>
+        position={[halfW, 0.01, -(halfH + goalHalf) / 2]}
+      >
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[halfW, 0.01, (halfH + goalHalf) / 2]}>
+        position={[halfW, 0.01, (halfH + goalHalf) / 2]}
+      >
         <planeGeometry args={[0.15, halfH - goalHalf]} />
         <meshBasicMaterial color={FIELD_LINE_COLOR} />
       </mesh>
@@ -596,56 +628,40 @@ function FieldLines({
   );
 }
 
-function Walls({ halfW, halfH, goalHalf }: { halfW: number; halfH: number; goalHalf: number }) {
+function Walls({
+  halfW,
+  halfH,
+  goalHalf,
+}: {
+  halfW: number;
+  halfH: number;
+  goalHalf: number;
+}) {
   return (
     <group>
       <mesh position={[0, 1, -halfH - 0.5]}>
         <boxGeometry args={[FIELD_WIDTH + 2, 2, 1]} />
-        <meshStandardMaterial
-          color={0x2a2a3a}
-          transparent
-          opacity={0.5}
-        />
+        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
       </mesh>
       <mesh position={[0, 1, halfH + 0.5]}>
         <boxGeometry args={[FIELD_WIDTH + 2, 2, 1]} />
-        <meshStandardMaterial
-          color={0x2a2a3a}
-          transparent
-          opacity={0.5}
-        />
+        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
       </mesh>
       <mesh position={[-halfW - 0.5, 1, -(halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
-        <meshStandardMaterial
-          color={0x2a2a3a}
-          transparent
-          opacity={0.5}
-        />
+        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
       </mesh>
       <mesh position={[-halfW - 0.5, 1, (halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
-        <meshStandardMaterial
-          color={0x2a2a3a}
-          transparent
-          opacity={0.5}
-        />
+        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
       </mesh>
       <mesh position={[halfW + 0.5, 1, -(halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
-        <meshStandardMaterial
-          color={0x2a2a3a}
-          transparent
-          opacity={0.5}
-        />
+        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
       </mesh>
       <mesh position={[halfW + 0.5, 1, (halfH + goalHalf) / 2]}>
         <boxGeometry args={[1, 2, halfH - goalHalf]} />
-        <meshStandardMaterial
-          color={0x2a2a3a}
-          transparent
-          opacity={0.5}
-        />
+        <meshStandardMaterial color={0x2a2a3a} transparent opacity={0.5} />
       </mesh>
     </group>
   );
@@ -758,22 +774,12 @@ export function Obstacles() {
   return (
     <group>
       {FIELD_OBSTACLES.map((obs) => (
-        <group
-          key={obs.id}
-          position={[obs.position.x, 0, obs.position.z]}>
-          <mesh
-            position={[0, obs.height / 2, 0]}
-            castShadow
-            receiveShadow>
+        <group key={obs.id} position={[obs.position.x, 0, obs.position.z]}>
+          <mesh position={[0, obs.height / 2, 0]} castShadow receiveShadow>
             <cylinderGeometry args={[obs.radius, obs.radius, obs.height, 32]} />
-            <primitive
-              object={obstacleMaterial}
-              attach="material"
-            />
+            <primitive object={obstacleMaterial} attach="material" />
           </mesh>
-          <mesh
-            position={[0, 0.05, 0]}
-            rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <ringGeometry args={[obs.radius + 0.2, obs.radius + 0.5, 32]} />
             <meshBasicMaterial
               color={0xffaa00}
@@ -806,8 +812,14 @@ const boostPadInactiveMaterial = new THREE.MeshStandardMaterial({
 
 const boostPadGeometry = new THREE.CylinderGeometry(1, 1, 0.2, 32);
 
-export function BoostPads({ latestRef }: { latestRef: MutableRefObject<GameSnapshot | null> }) {
-  const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(FIELD_BOOST_PADS.length).fill(null));
+export function BoostPads({
+  latestRef,
+}: {
+  latestRef: MutableRefObject<GameSnapshot | null>;
+}) {
+  const meshRefs = useRef<(THREE.Mesh | null)[]>(
+    Array(FIELD_BOOST_PADS.length).fill(null)
+  );
   const lastTickRef = useRef<number>(-1);
   const padStateMapRef = useRef<Map<string, boolean>>(new Map());
 
@@ -846,24 +858,18 @@ export function BoostPads({ latestRef }: { latestRef: MutableRefObject<GameSnaps
   return (
     <group>
       {FIELD_BOOST_PADS.map((pad, i) => (
-        <group
-          key={pad.id}
-          position={[pad.position.x, 0.1, pad.position.z]}>
+        <group key={pad.id} position={[pad.position.x, 0.1, pad.position.z]}>
           <mesh
             ref={(r) => {
               meshRefs.current[i] = r;
             }}
             geometry={boostPadGeometry}
             scale={[pad.radius, 1, pad.radius]}
-            receiveShadow>
-            <primitive
-              object={boostPadActiveMaterial}
-              attach="material"
-            />
+            receiveShadow
+          >
+            <primitive object={boostPadActiveMaterial} attach="material" />
           </mesh>
-          <mesh
-            position={[0, 0.11, 0]}
-            rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh position={[0, 0.11, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <ringGeometry args={[pad.radius * 0.5, pad.radius * 0.8, 16]} />
             <meshBasicMaterial
               color={0xffffff}
@@ -879,15 +885,16 @@ export function BoostPads({ latestRef }: { latestRef: MutableRefObject<GameSnaps
 }
 
 // ---- Main Scene ----
-export default function GameScene({ latestRef, room, pitchTextureUrl }: GameSceneProps) {
+export default function GameScene({
+  latestRef,
+  room,
+  pitchTextureUrl,
+}: GameSceneProps) {
   const localPlayerPos = useRef(new THREE.Vector3());
 
   return (
     <>
-      <color
-        attach="background"
-        args={["#1e1e24"]}
-      />
+      <color attach="background" args={['#1e1e24']} />
 
       {/* Lights */}
       <ambientLight intensity={0.6} />
@@ -905,19 +912,16 @@ export default function GameScene({ latestRef, room, pitchTextureUrl }: GameScen
         shadow-camera-far={150}
       />
       {/* Soft fill light from opposite side */}
-      <directionalLight
-        position={[-50, 40, -20]}
-        intensity={0.4}
-      />
+      <directionalLight position={[-50, 40, -20]} intensity={0.4} />
 
       {/* Environment */}
       <Field textureUrl={pitchTextureUrl} />
-      {room?.enableFeatures !== false && (
+      {room?.enableFeatures !== false ? (
         <>
           <Obstacles />
           <BoostPads latestRef={latestRef} />
         </>
-      )}
+      ) : null}
 
       {/* Entities */}
       <PlayerPool
@@ -927,10 +931,7 @@ export default function GameScene({ latestRef, room, pitchTextureUrl }: GameScen
       />
       <PowerUpPool latestRef={latestRef} />
       <Ball latestRef={latestRef} />
-      <CameraFollow
-        latestRef={latestRef}
-        localPlayerPos={localPlayerPos}
-      />
+      <CameraFollow latestRef={latestRef} localPlayerPos={localPlayerPos} />
     </>
   );
 }

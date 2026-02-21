@@ -1,13 +1,20 @@
-import { Canvas } from "@react-three/fiber";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import GameScene from "../components/GameScene";
-import MiniMap from "../components/MiniMap";
-import { useGameInput } from "../hooks/useGameInput";
-import { socket, usePing, useSnapshotBuffer } from "../hooks/useNetwork";
-import { useSoundSettings } from "../hooks/useSoundSettings";
-import type { GameSnapshot, RoomInfo, Team } from "../types";
-import { AudioManager } from "../utils/AudioManager";
+import { Canvas } from '@react-three/fiber';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import GameScene from '../components/GameScene';
+import MiniMap from '../components/MiniMap';
+import { useGameInput } from '../hooks/useGameInput';
+import { socket, usePing, useSnapshotBuffer } from '../hooks/useNetwork';
+import { useSoundSettings } from '../hooks/useSoundSettings';
+import type { GameSnapshot, RoomInfo, Team } from '../types';
+import { AudioManager } from '../utils/AudioManager';
 
 export default function Game() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -21,32 +28,36 @@ export default function Game() {
   // Only these use React state (infrequent updates)
   const [score, setScore] = useState({ blue: 0, red: 0 });
   const [timeRemaining, setTimeRemaining] = useState(0);
-  const [gameState, setGameState] = useState<string>("countdown");
+  const [gameState, setGameState] = useState<string>('countdown');
   const [countdown, setCountdown] = useState(3);
-  const [goalInfo, setGoalInfo] = useState<{ team: Team; scorer: string } | null>(null);
+  const [goalInfo, setGoalInfo] = useState<{
+    team: Team;
+    scorer: string;
+  } | null>(null);
   const [gameOver, setGameOver] = useState<{
     score: { blue: number; red: number };
     winner: string;
   } | null>(null);
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [boostCooldown, setBoostCooldown] = useState(0);
-  const [activePowerUp, setActivePowerUp] = useState<{ type: string; timeLeft: number } | null>(
-    null,
-  );
+  const [activePowerUp, setActivePowerUp] = useState<{
+    type: string;
+    timeLeft: number;
+  } | null>(null);
   const [speed, setSpeed] = useState(0);
   const [ping, setPing] = useState(0);
-  const [showControls, setShowControls] = useState(true);
+  const [, setShowControls] = useState(true);
   const [hostLeft, setHostLeft] = useState(false);
   const { isSoundEnabled, toggleSound } = useSoundSettings();
 
   // My team (from session)
-  const myTeam = useRef<Team>("blue");
+  const myTeam = useRef<Team>('blue');
 
   // Format timer
   const timerDisplay = useMemo(() => {
     const minutes = Math.floor(timeRemaining / 60);
     const seconds = Math.floor(timeRemaining % 60);
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }, [timeRemaining]);
 
   useEffect(() => {
@@ -57,29 +68,31 @@ export default function Game() {
     }
 
     // Read custom pitch texture
-    const pitchTexture = localStorage.getItem("bb-custom-pitch") || "";
+    localStorage.getItem('bb-custom-pitch');
 
     // ---- Re-join room to associate this socket with the room on server ----
-    const nickname = sessionStorage.getItem("bb-nickname") || "Player";
+    const nickname = sessionStorage.getItem('bb-nickname') || 'Player';
     const rejoinRoom = () => {
       socket.emit(
-        "join-room",
+        'join-room',
         { roomId, nickname },
         (res: {
           success: boolean;
           room?: { players: { id: string; team: string }[]; gameState: string };
         }) => {
           if (res.success && res.room) {
-            const me = res.room.players.find((p: { id: string }) => p.id === socket.id);
+            const me = res.room.players.find(
+              (p: { id: string }) => p.id === socket.id
+            );
             if (me) {
               myTeam.current = me.team as Team;
             }
             setRoom(res.room as RoomInfo);
-            if (res.room.gameState !== "lobby") {
-              socket.emit("enter-match");
+            if (res.room.gameState !== 'lobby') {
+              socket.emit('enter-match');
             }
           }
-        },
+        }
       );
     };
 
@@ -87,7 +100,7 @@ export default function Game() {
     rejoinRoom();
 
     // Re-join on reconnect (e.g. after server restart)
-    socket.on("connect", rejoinRoom);
+    socket.on('connect', rejoinRoom);
 
     // ---- Receive snapshots (update refs, minimal React state) ----
     const handleSnapshot = (snapshot: GameSnapshot) => {
@@ -127,13 +140,16 @@ export default function Game() {
       setTimeout(() => setGoalInfo(null), 2000);
     };
 
-    const handleGameEnded = (data: { score: { blue: number; red: number }; winner: string }) => {
+    const handleGameEnded = (data: {
+      score: { blue: number; red: number };
+      winner: string;
+    }) => {
       setGameOver(data);
     };
 
     const handleGameStart = (data: { countdown: number }) => {
       setCountdown(data.countdown);
-      setGameState("countdown");
+      setGameState('countdown');
       setShowControls(false); // Force close the controls overlay so the countdown takes priority
     };
 
@@ -145,18 +161,18 @@ export default function Game() {
       setRoom(updatedRoom);
     };
 
-    socket.on("game-snapshot", handleSnapshot);
-    socket.on("goal-scored", handleGoalScored);
-    socket.on("game-ended", handleGameEnded);
-    socket.on("game-start", handleGameStart);
-    socket.on("room-destroyed", handleRoomDestroyed);
-    socket.on("room-update", handleRoomUpdate);
+    socket.on('game-snapshot', handleSnapshot);
+    socket.on('goal-scored', handleGoalScored);
+    socket.on('game-ended', handleGameEnded);
+    socket.on('game-start', handleGameStart);
+    socket.on('room-destroyed', handleRoomDestroyed);
+    socket.on('room-update', handleRoomUpdate);
 
     // ---- Send inputs at 20 Hz ----
     sendIntervalRef.current = window.setInterval(() => {
       const input = getInput();
       seqRef.current++;
-      socket.volatile.emit("player-input", {
+      socket.volatile.emit('player-input', {
         dx: input.dx,
         dz: input.dz,
         boost: input.boost,
@@ -171,17 +187,18 @@ export default function Game() {
     }, 3000);
 
     return () => {
-      socket.off("connect", rejoinRoom);
-      socket.off("game-snapshot", handleSnapshot);
-      socket.off("goal-scored", handleGoalScored);
-      socket.off("game-ended", handleGameEnded);
-      socket.off("game-start", handleGameStart);
-      socket.off("room-destroyed", handleRoomDestroyed);
-      socket.off("room-update", handleRoomUpdate);
+      socket.off('connect', rejoinRoom);
+      socket.off('game-snapshot', handleSnapshot);
+      socket.off('goal-scored', handleGoalScored);
+      socket.off('game-ended', handleGameEnded);
+      socket.off('game-start', handleGameStart);
+      socket.off('room-destroyed', handleRoomDestroyed);
+      socket.off('room-update', handleRoomUpdate);
       if (sendIntervalRef.current) clearInterval(sendIntervalRef.current);
       clearInterval(pingInterval);
     };
-  }, [roomId, getInput, push, pingRef]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId, push, getInput]);
 
   const handleBackToLobby = useCallback(() => {
     setGameOver(null);
@@ -189,70 +206,73 @@ export default function Game() {
   }, [navigate, roomId]);
 
   const handleBackHome = useCallback(() => {
-    socket.emit("leave-room");
-    navigate("/");
+    socket.emit('leave-room');
+    navigate('/');
   }, [navigate]);
 
   // Boost bar percentage (4s cooldown)
-  const boostPercent = Math.max(0, Math.min(100, (1 - boostCooldown / 4) * 100));
+  const boostPercent = Math.max(
+    0,
+    Math.min(100, (1 - boostCooldown / 4) * 100)
+  );
 
   const getPowerUpIcon = (type: string) => {
     switch (type) {
-      case "magnet":
-        return "🧲";
-      case "freeze":
-        return "🧊";
-      case "rocket":
-        return "🚀";
-      case "frozen":
-        return "❄️";
+      case 'magnet':
+        return '🧲';
+      case 'freeze':
+        return '🧊';
+      case 'rocket':
+        return '🚀';
+      case 'frozen':
+        return '❄️';
       default:
-        return "⭐";
+        return '⭐';
     }
   };
 
   const getPowerUpColor = (type: string) => {
     switch (type) {
-      case "magnet":
-        return "#a855f7";
-      case "freeze":
-        return "#38bdf8";
-      case "rocket":
-        return "#f97316";
-      case "frozen":
-        return "#87ceeb";
+      case 'magnet':
+        return '#a855f7';
+      case 'freeze':
+        return '#38bdf8';
+      case 'rocket':
+        return '#f97316';
+      case 'frozen':
+        return '#87ceeb';
       default:
-        return "#fbbf24";
+        return '#fbbf24';
     }
   };
 
   const getPowerUpName = (type: string) => {
     switch (type) {
-      case "magnet":
-        return "Magnet";
-      case "freeze":
-        return "Freeze";
-      case "rocket":
-        return "Rocket Kick";
-      case "frozen":
-        return "Frozen!";
+      case 'magnet':
+        return 'Magnet';
+      case 'freeze':
+        return 'Freeze';
+      case 'rocket':
+        return 'Rocket Kick';
+      case 'frozen':
+        return 'Frozen!';
       default:
-        return "Power-up";
+        return 'Power-up';
     }
   };
 
   const getPowerUpDescription = (type: string) => {
     switch (type) {
-      case "magnet":
-        return "Pulls the ball towards you";
-      case "freeze":
-        return "Freezes opponents instantly";
-      case "rocket":
-        return "Massive force on next hit";
-      case "frozen":
-        return "You are stuck in ice!";
+      case 'magnet':
+        return 'Pulls the ball towards you';
+      case 'freeze':
+        return 'Freezes opponents instantly';
+      case 'rocket':
+        return 'Massive force on next hit';
+      case 'frozen':
+        return 'You are stuck in ice!';
       default:
-        return "Special effect active";
+        return 'Special effect active';
     }
   };
 
@@ -264,12 +284,15 @@ export default function Game() {
         camera={{ fov: 60, near: 0.1, far: 500, position: [0, 30, 40] }}
         shadows
         dpr={[1, 1.5]}
-        gl={{ antialias: true, alpha: false }}>
-        <GameScene
-          latestRef={latestRef}
-          room={room}
-          pitchTextureUrl={localStorage.getItem("bb-custom-pitch") || ""}
-        />
+        gl={{ antialias: true, alpha: false }}
+      >
+        <Suspense fallback={null}>
+          <GameScene
+            latestRef={latestRef}
+            room={room}
+            pitchTextureUrl={localStorage.getItem('bb-custom-pitch') || ''}
+          />
+        </Suspense>
       </Canvas>
 
       {/* HUD */}
@@ -280,7 +303,9 @@ export default function Game() {
             <div className="hud-score-divider" />
             <div className="hud-score-red">{score.red}</div>
           </div>
-          <div className={`hud-timer ${timeRemaining < 30 ? "warning" : ""}`}>{timerDisplay}</div>
+          <div className={`hud-timer ${timeRemaining < 30 ? 'warning' : ''}`}>
+            {timerDisplay}
+          </div>
         </div>
 
         <div className="hud-ping">{ping}ms</div>
@@ -288,9 +313,10 @@ export default function Game() {
         <button
           className="hud-sound-toggle"
           onClick={toggleSound}
-          title="Toggle Sound">
-          {" "}
-          {isSoundEnabled ? "🔊" : "🔇"}
+          title="Toggle Sound"
+        >
+          {' '}
+          {isSoundEnabled ? '🔊' : '🔇'}
         </button>
 
         {/* MiniMap */}
@@ -308,116 +334,130 @@ export default function Game() {
           <div className="hud-boost-label">Boost</div>
           <div className="hud-boost-bar">
             <div
-              className={`hud-boost-fill ${boostCooldown > 0 ? "cooldown" : ""}`}
+              className={`hud-boost-fill ${boostCooldown > 0 ? 'cooldown' : ''}`}
               style={{ width: `${boostPercent}%` }}
             />
           </div>
         </div>
 
         {/* Active PowerUp */}
-        {activePowerUp && (
+        {activePowerUp ? (
           <div
             className="hud-powerup-container"
-            style={{ "--glow-color": getPowerUpColor(activePowerUp.type) } as React.CSSProperties}>
+            style={
+              {
+                '--glow-color': getPowerUpColor(activePowerUp.type),
+              } as React.CSSProperties
+            }
+          >
             <div className="hud-powerup-details">
-              <div className="hud-powerup-name glow-text">{getPowerUpName(activePowerUp.type)}</div>
-              <div className="hud-powerup-desc">{getPowerUpDescription(activePowerUp.type)}</div>
+              <div className="hud-powerup-name glow-text">
+                {getPowerUpName(activePowerUp.type)}
+              </div>
+              <div className="hud-powerup-desc">
+                {getPowerUpDescription(activePowerUp.type)}
+              </div>
             </div>
 
             <div className="hud-powerup glow">
-              <div className="hud-powerup-icon">{getPowerUpIcon(activePowerUp.type)}</div>
-              <div className="hud-powerup-timer">{Math.ceil(activePowerUp.timeLeft)}</div>
+              <div className="hud-powerup-icon">
+                {getPowerUpIcon(activePowerUp.type)}
+              </div>
+              <div className="hud-powerup-timer">
+                {Math.ceil(activePowerUp.timeLeft)}
+              </div>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Countdown Overlay */}
-      {gameState === "countdown" && (
+      {gameState === 'countdown' ? (
         <div className="countdown-overlay">
           <div className="countdown-number">{countdown}</div>
         </div>
-      )}
+      ) : null}
 
       {/* Goal Scored Overlay */}
-      {goalInfo && (
+      {goalInfo ? (
         <div className="goal-overlay">
           <div className={`goal-text ${goalInfo.team}`}>
             GOAL!
-            <div style={{ fontSize: "24px", marginTop: "8px", fontWeight: 500 }}>
+            <div
+              style={{ fontSize: '24px', marginTop: '8px', fontWeight: 500 }}
+            >
               {goalInfo.scorer}
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Game Over Overlay */}
-      {gameOver && !hostLeft && (
+      {gameOver && !hostLeft ? (
         <div className="gameover-overlay">
           <div className="gameover-card glass-card">
             <div className="gameover-title">Game Over</div>
             <div className="gameover-score">
-              <span style={{ color: "var(--blue-team)" }}>{gameOver.score.blue}</span>
-              {" — "}
-              <span style={{ color: "var(--red-team)" }}>{gameOver.score.red}</span>
+              <span style={{ color: 'var(--blue-team)' }}>
+                {gameOver.score.blue}
+              </span>
+              {' — '}
+              <span style={{ color: 'var(--red-team)' }}>
+                {gameOver.score.red}
+              </span>
             </div>
             <div className="gameover-winner">
-              {gameOver.winner === "draw"
-                ? "Draw!"
-                : `${gameOver.winner === "blue" ? "Blue" : "Red"} Team Wins! 🏆`}
+              {gameOver.winner === 'draw'
+                ? 'Draw!'
+                : `${gameOver.winner === 'blue' ? 'Blue' : 'Red'} Team Wins! 🏆`}
             </div>
             <div className="gameover-actions">
-              <button
-                className="btn btn-outline"
-                onClick={handleBackHome}>
+              <button className="btn btn-outline" onClick={handleBackHome}>
                 Home
               </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleBackToLobby}>
+              <button className="btn btn-primary" onClick={handleBackToLobby}>
                 Back to Lobby
               </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Host Left Overlay */}
-      {hostLeft && (
-        <div
-          className="gameover-overlay"
-          style={{ zIndex: 1000 }}>
+      {hostLeft ? (
+        <div className="gameover-overlay" style={{ zIndex: 1000 }}>
           <div className="gameover-card glass-card">
             <div
               className="gameover-title"
-              style={{ color: "#ff4a4a", fontSize: "2rem" }}>
+              style={{ color: '#ff4a4a', fontSize: '2rem' }}
+            >
               Host Disconnected
             </div>
             <div
               style={{
-                color: "var(--text-secondary)",
-                marginBottom: "24px",
-                textAlign: "center",
+                color: 'var(--text-secondary)',
+                marginBottom: '24px',
+                textAlign: 'center',
                 lineHeight: 1.5,
-              }}>
-              The host has unexpectedly left the game or their connection dropped. The room is now
-              closed.
+              }}
+            >
+              The host has unexpectedly left the game or their connection
+              dropped. The room is now closed.
             </div>
             <div
               className="gameover-actions"
-              style={{ justifyContent: "center" }}>
-              <button
-                className="btn btn-primary"
-                onClick={() => navigate("/")}>
+              style={{ justifyContent: 'center' }}
+            >
+              <button className="btn btn-primary" onClick={() => navigate('/')}>
                 Return to Main Menu
               </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Modern Controls Hint - Only shown during Countdown and early Game */}
-      {gameState === "countdown" && (
+      {gameState === 'countdown' ? (
         <div className="controls-hint-overlay">
           <div className="controls-hint-card">
             <h3>How to Play</h3>
@@ -444,7 +484,7 @@ export default function Game() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
