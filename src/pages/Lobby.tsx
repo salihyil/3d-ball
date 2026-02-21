@@ -1,8 +1,10 @@
 import { OrbitControls, Stage } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BoostPads, Field, Obstacles } from '../components/GameScene';
+import LanguageSelector from '../components/LanguageSelector';
 import { socket } from '../hooks/useNetwork';
 import { useSoundSettings } from '../hooks/useSoundSettings';
 import type { PlayerInfo, RoomInfo, Team } from '../types';
@@ -27,6 +29,7 @@ const SAMPLE_TEXTURES = [
 ];
 
 export default function Lobby() {
+  const { t } = useTranslation();
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const [room, setRoom] = useState<RoomInfo | null>(null);
@@ -145,18 +148,17 @@ export default function Lobby() {
             style={{ padding: '40px', maxWidth: '400px' }}
           >
             <h2 style={{ color: '#ff4a4a', marginBottom: '16px' }}>
-              Host Disconnected
+              {t('lobby.host_disconnected')}
             </h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-              The host has unexpectedly left the game or their connection
-              dropped. This room has been closed.
+              {t('lobby.host_disconnected_desc')}
             </p>
             <button
               className="btn btn-primary"
               style={{ width: '100%' }}
               onClick={() => navigate('/')}
             >
-              Return to Main Menu
+              {t('lobby.return_home')}
             </button>
           </div>
         </div>
@@ -170,7 +172,7 @@ export default function Lobby() {
         <div className="bg-animated" />
         <div className="page-center">
           <p style={{ color: 'var(--text-secondary)' }}>
-            Connecting to room...
+            {t('lobby.connecting')}
           </p>
         </div>
       </>
@@ -194,16 +196,21 @@ export default function Lobby() {
           >
             {/* Header */}
             <div className="lobby-header" style={{ marginBottom: '16px' }}>
-              <h2 className="lobby-title" style={{ fontSize: '24px' }}>
-                Game Lobby
-              </h2>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+              >
+                <h2 className="lobby-title" style={{ fontSize: '24px' }}>
+                  {t('lobby.title')}
+                </h2>
+                <LanguageSelector />
+              </div>
               <div className="lobby-room-code">
                 <span className="lobby-code">{roomId}</span>
                 <button
                   className="btn btn-outline lobby-copy-btn"
                   onClick={handleCopyLink}
                 >
-                  {copied ? '✓ Copied!' : '📋 Copy Link'}
+                  {copied ? t('lobby.copied') : t('lobby.copy_link')}
                 </button>
               </div>
               <button
@@ -221,17 +228,17 @@ export default function Lobby() {
               <div className="team-panel blue">
                 <div className="team-title">
                   <span className="team-dot" />
-                  Blue Team ({bluePlayers.length}/5)
+                  {t('lobby.blue_team', { count: bluePlayers.length })}
                 </div>
                 <div className="team-players">
                   {bluePlayers.map((p: PlayerInfo) => (
                     <div key={p.id} className="team-player">
                       {p.nickname}
                       {p.isHost ? (
-                        <span className="host-badge">HOST</span>
+                        <span className="host-badge">{t('common.host')}</span>
                       ) : null}
                       {p.id === myId ? (
-                        <span className="you-badge">YOU</span>
+                        <span className="you-badge">{t('common.you')}</span>
                       ) : null}
                     </div>
                   ))}
@@ -247,24 +254,26 @@ export default function Lobby() {
                   onClick={() => handleSwitchTeam('blue')}
                   disabled={bluePlayers.length >= 5}
                 >
-                  {bluePlayers.length >= 5 ? 'Team Full' : 'Join Blue'}
+                  {bluePlayers.length >= 5
+                    ? t('lobby.team_full')
+                    : t('lobby.join_blue')}
                 </button>
               </div>
 
               <div className="team-panel red">
                 <div className="team-title">
                   <span className="team-dot" />
-                  Red Team ({redPlayers.length}/5)
+                  {t('lobby.red_team', { count: redPlayers.length })}
                 </div>
                 <div className="team-players">
                   {redPlayers.map((p: PlayerInfo) => (
                     <div key={p.id} className="team-player">
                       {p.nickname}
                       {p.isHost ? (
-                        <span className="host-badge">HOST</span>
+                        <span className="host-badge">{t('common.host')}</span>
                       ) : null}
                       {p.id === myId ? (
-                        <span className="you-badge">YOU</span>
+                        <span className="you-badge">{t('common.you')}</span>
                       ) : null}
                     </div>
                   ))}
@@ -280,20 +289,22 @@ export default function Lobby() {
                   onClick={() => handleSwitchTeam('red')}
                   disabled={redPlayers.length >= 5}
                 >
-                  {redPlayers.length >= 5 ? 'Team Full' : 'Join Red'}
+                  {redPlayers.length >= 5
+                    ? t('lobby.team_full')
+                    : t('lobby.join_red')}
                 </button>
               </div>
             </div>
 
             {/* Settings + Actions */}
             <div className="lobby-settings">
-              <span className="label">Duration</span>
+              <span className="label">{t('lobby.duration')}</span>
               <span className="mono" style={{ color: 'var(--accent)' }}>
                 {room.matchDuration} min
               </span>
               <span style={{ flex: 1 }} />
               <span className="label" style={{ color: 'var(--text-muted)' }}>
-                {room.players.length}/10 players
+                {t('lobby.players_count', { count: room.players.length })}
               </span>
             </div>
 
@@ -329,7 +340,7 @@ export default function Lobby() {
                   cursor: isHost ? 'pointer' : 'default',
                 }}
               >
-                Sahada engeller ve güçlendiriciler olsun mu?
+                {t('lobby.features_label')}
               </label>
             </div>
 
@@ -351,13 +362,13 @@ export default function Lobby() {
                   alignItems: 'center',
                 }}
               >
-                <span className="label">Match Field Texture</span>
+                <span className="label">{t('lobby.field_texture')}</span>
                 <button
                   className="btn btn-outline"
                   style={{ fontSize: '12px', padding: '4px 8px' }}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  Upload Custom Image
+                  {t('lobby.upload_custom')}
                 </button>
                 <input
                   type="file"
@@ -451,7 +462,7 @@ export default function Lobby() {
                   pointerEvents: 'none',
                 }}
               >
-                Field Preview
+                {t('lobby.field_preview')}
               </div>
               <Canvas camera={{ position: [20, 20, 20], fov: 45 }}>
                 <Suspense fallback={null}>
@@ -479,7 +490,7 @@ export default function Lobby() {
 
             <div className="lobby-actions" style={{ marginTop: '24px' }}>
               <button className="btn btn-outline" onClick={handleLeave}>
-                Leave
+                {t('lobby.leave')}
               </button>
               {room.gameState !== 'lobby' ? (
                 <button
@@ -490,7 +501,7 @@ export default function Lobby() {
                     navigate(`/game/${roomId}`);
                   }}
                 >
-                  ⚔️ Enter Match
+                  {t('lobby.enter_match')}
                 </button>
               ) : isHost ? (
                 <button
@@ -501,7 +512,7 @@ export default function Lobby() {
                   }}
                   disabled={!canStart}
                 >
-                  {canStart ? '🚀 Start Game' : 'Need players on both teams'}
+                  {canStart ? t('lobby.start_game') : t('lobby.need_players')}
                 </button>
               ) : (
                 <div
@@ -512,7 +523,7 @@ export default function Lobby() {
                     padding: '12px',
                   }}
                 >
-                  Waiting for host to start...
+                  {t('lobby.waiting_host')}
                 </div>
               )}
             </div>

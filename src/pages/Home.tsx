@@ -1,8 +1,11 @@
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import LanguageSelector from '../components/LanguageSelector';
 import { socket } from '../hooks/useNetwork';
 
 export default function Home() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [nickname, setNickname] = useState('');
   const [roomCode, setRoomCode] = useState('');
@@ -12,7 +15,7 @@ export default function Home() {
 
   const handleCreate = useCallback(() => {
     if (!nickname.trim()) {
-      setError('Enter a nickname');
+      setError(t('home.error_nickname'));
       return;
     }
     setLoading(true);
@@ -33,11 +36,11 @@ export default function Home() {
 
   const handleJoin = useCallback(() => {
     if (!nickname.trim()) {
-      setError('Enter a nickname');
+      setError(t('home.error_nickname'));
       return;
     }
     if (!roomCode.trim()) {
-      setError('Enter a room code');
+      setError(t('home.error_room_code'));
       return;
     }
     setLoading(true);
@@ -52,7 +55,7 @@ export default function Home() {
           sessionStorage.setItem('bb-nickname', nickname.trim());
           navigate(`/lobby/${roomCode.trim()}`);
         } else {
-          setError(res.error || 'Failed to join');
+          setError(res.error || t('home.error_join_failed'));
         }
       }
     );
@@ -61,11 +64,21 @@ export default function Home() {
   return (
     <>
       <div className="bg-animated" />
+      <div
+        style={{
+          position: 'absolute',
+          top: '24px',
+          right: '24px',
+          zIndex: 1000,
+        }}
+      >
+        <LanguageSelector />
+      </div>
       <div className="page-center">
         <div className="home-container">
-          <h1 className="home-title animate-in">BALL BRAWL</h1>
+          <h1 className="home-title animate-in">{t('home.title')}</h1>
           <p className="home-subtitle animate-in animate-in-delay-1">
-            5v5 Multiplayer Soccer — Real-time 3D
+            {t('home.subtitle')}
           </p>
 
           <div
@@ -74,11 +87,11 @@ export default function Home() {
           >
             <div className="home-form">
               <div>
-                <label className="label">Your Name</label>
+                <label className="label">{t('home.nickname_label')}</label>
                 <input
                   className="input"
                   type="text"
-                  placeholder="Enter nickname..."
+                  placeholder={t('home.nickname_placeholder')}
                   maxLength={16}
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
@@ -89,16 +102,24 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="label">Match Duration</label>
+                <label className="label">{t('home.duration_label')}</label>
                 <select
                   className="select"
                   value={matchDuration}
                   onChange={(e) => setMatchDuration(Number(e.target.value))}
                 >
-                  <option value={3}>3 Minutes</option>
-                  <option value={5}>5 Minutes</option>
-                  <option value={7}>7 Minutes</option>
-                  <option value={10}>10 Minutes</option>
+                  <option value={3}>
+                    {t('home.duration_minutes', { count: 3 })}
+                  </option>
+                  <option value={5}>
+                    {t('home.duration_minutes', { count: 5 })}
+                  </option>
+                  <option value={7}>
+                    {t('home.duration_minutes', { count: 7 })}
+                  </option>
+                  <option value={10}>
+                    {t('home.duration_minutes', { count: 10 })}
+                  </option>
                 </select>
               </div>
 
@@ -107,16 +128,16 @@ export default function Home() {
                 onClick={handleCreate}
                 disabled={loading}
               >
-                ⚽ Create Room
+                {t('home.create_room')}
               </button>
 
-              <div className="home-divider">or join existing</div>
+              <div className="home-divider">{t('home.or_join')}</div>
 
               <div className="join-row">
                 <input
                   className="input"
                   type="text"
-                  placeholder="Room code..."
+                  placeholder={t('home.room_code_placeholder')}
                   maxLength={8}
                   value={roomCode}
                   onChange={(e) => setRoomCode(e.target.value)}
@@ -129,7 +150,7 @@ export default function Home() {
                   onClick={handleJoin}
                   disabled={loading}
                 >
-                  Join
+                  {t('home.join_btn')}
                 </button>
               </div>
 

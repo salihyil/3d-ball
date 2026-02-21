@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import GameScene from '../components/GameScene';
 import MiniMap from '../components/MiniMap';
@@ -17,6 +18,7 @@ import type { GameSnapshot, RoomInfo, Team } from '../types';
 import { AudioManager } from '../utils/AudioManager';
 
 export default function Game() {
+  const { t } = useTranslation();
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const { getInput } = useGameInput();
@@ -249,30 +251,30 @@ export default function Game() {
   const getPowerUpName = (type: string) => {
     switch (type) {
       case 'magnet':
-        return 'Magnet';
+        return t('game.powerups.magnet');
       case 'freeze':
-        return 'Freeze';
+        return t('game.powerups.freeze');
       case 'rocket':
-        return 'Rocket Kick';
+        return t('game.powerups.rocket');
       case 'frozen':
-        return 'Frozen!';
+        return t('game.powerups.frozen');
       default:
-        return 'Power-up';
+        return t('game.powerups.generic');
     }
   };
 
   const getPowerUpDescription = (type: string) => {
     switch (type) {
       case 'magnet':
-        return 'Pulls the ball towards you';
+        return t('game.powerups.magnet_desc');
       case 'freeze':
-        return 'Freezes opponents instantly';
+        return t('game.powerups.freeze_desc');
       case 'rocket':
-        return 'Massive force on next hit';
+        return t('game.powerups.rocket_desc');
       case 'frozen':
-        return 'You are stuck in ice!';
+        return t('game.powerups.frozen_desc');
       default:
-        return 'Special effect active';
+        return t('game.powerups.generic_desc');
     }
   };
 
@@ -327,11 +329,11 @@ export default function Game() {
         {/* Speedometer */}
         <div className="hud-speedometer">
           <div className="hud-speed-value">{speed}</div>
-          <div className="hud-speed-unit">KPH</div>
+          <div className="hud-speed-unit">{t('game.kph')}</div>
         </div>
 
         <div className="hud-boost">
-          <div className="hud-boost-label">Boost</div>
+          <div className="hud-boost-label">{t('game.boost')}</div>
           <div className="hud-boost-bar">
             <div
               className={`hud-boost-fill ${boostCooldown > 0 ? 'cooldown' : ''}`}
@@ -382,7 +384,7 @@ export default function Game() {
       {goalInfo ? (
         <div className="goal-overlay">
           <div className={`goal-text ${goalInfo.team}`}>
-            GOAL!
+            {t('game.goal')}
             <div
               style={{ fontSize: '24px', marginTop: '8px', fontWeight: 500 }}
             >
@@ -396,7 +398,7 @@ export default function Game() {
       {gameOver && !hostLeft ? (
         <div className="gameover-overlay">
           <div className="gameover-card glass-card">
-            <div className="gameover-title">Game Over</div>
+            <div className="gameover-title">{t('game.game_over')}</div>
             <div className="gameover-score">
               <span style={{ color: 'var(--blue-team)' }}>
                 {gameOver.score.blue}
@@ -408,15 +410,15 @@ export default function Game() {
             </div>
             <div className="gameover-winner">
               {gameOver.winner === 'draw'
-                ? 'Draw!'
-                : `${gameOver.winner === 'blue' ? 'Blue' : 'Red'} Team Wins! 🏆`}
+                ? t('game.draw')
+                : t('game.wins', { team: t(`game.${gameOver.winner}`) })}
             </div>
             <div className="gameover-actions">
               <button className="btn btn-outline" onClick={handleBackHome}>
-                Home
+                {t('game.home')}
               </button>
               <button className="btn btn-primary" onClick={handleBackToLobby}>
-                Back to Lobby
+                {t('game.back_to_lobby')}
               </button>
             </div>
           </div>
@@ -431,7 +433,7 @@ export default function Game() {
               className="gameover-title"
               style={{ color: '#ff4a4a', fontSize: '2rem' }}
             >
-              Host Disconnected
+              {t('lobby.host_disconnected')}
             </div>
             <div
               style={{
@@ -441,15 +443,14 @@ export default function Game() {
                 lineHeight: 1.5,
               }}
             >
-              The host has unexpectedly left the game or their connection
-              dropped. The room is now closed.
+              {t('game.host_disconnected_desc')}
             </div>
             <div
               className="gameover-actions"
               style={{ justifyContent: 'center' }}
             >
               <button className="btn btn-primary" onClick={() => navigate('/')}>
-                Return to Main Menu
+                {t('lobby.return_home')}
               </button>
             </div>
           </div>
@@ -460,7 +461,7 @@ export default function Game() {
       {gameState === 'countdown' ? (
         <div className="controls-hint-overlay">
           <div className="controls-hint-card">
-            <h3>How to Play</h3>
+            <h3>{t('game.how_to_play')}</h3>
             <div className="hint-row">
               <div className="hint-keys">
                 <kbd>W</kbd>
@@ -468,19 +469,19 @@ export default function Game() {
                 <kbd>S</kbd>
                 <kbd>D</kbd>
               </div>
-              <span>Move player</span>
+              <span>{t('game.move_player')}</span>
             </div>
             <div className="hint-row">
               <div className="hint-keys">
-                <kbd className="key-wide">Spacebar</kbd>
+                <kbd className="key-wide">{t('game.space')}</kbd>
               </div>
-              <span>Jump</span>
+              <span>{t('game.jump')}</span>
             </div>
             <div className="hint-row">
               <div className="hint-keys">
-                <kbd className="key-wide">Shift</kbd>
+                <kbd className="key-wide">{t('game.shift')}</kbd>
               </div>
-              <span>Boost Dash</span>
+              <span>{t('game.boost_dash')}</span>
             </div>
           </div>
         </div>
