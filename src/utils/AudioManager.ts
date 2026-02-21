@@ -4,24 +4,31 @@ class AudioManagerImpl {
 
   constructor() {
     // Read initial state
-    const stored = localStorage.getItem("bb-sound-enabled");
+    const stored = localStorage.getItem('bb-sound-enabled');
     if (stored !== null) {
-      this.enabled = stored === "true";
+      this.enabled = stored === 'true';
     }
 
     // Listen for changes from React
-    if (typeof window !== "undefined") {
-      window.addEventListener("sound-setting-changed", (e: any) => {
-        this.enabled = e.detail.isSoundEnabled;
+    if (typeof window !== 'undefined') {
+      window.addEventListener('sound-setting-changed', (e: Event) => {
+        const customEvent = e as CustomEvent<{ isSoundEnabled: boolean }>;
+        this.enabled = customEvent.detail.isSoundEnabled;
       });
     }
   }
 
   private initCtx() {
     if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (AudioContextClass) {
+        this.ctx = new AudioContextClass();
+      }
     }
-    if (this.ctx.state === "suspended") {
+    if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   }
@@ -34,7 +41,7 @@ class AudioManagerImpl {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = "sine";
+    osc.type = 'sine';
     osc.frequency.setValueAtTime(120, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1);
 
@@ -56,7 +63,7 @@ class AudioManagerImpl {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = "triangle";
+    osc.type = 'triangle';
     osc.frequency.setValueAtTime(80, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.1);
 
@@ -82,7 +89,7 @@ class AudioManagerImpl {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
-      osc.type = "square";
+      osc.type = 'square';
       osc.frequency.value = freq;
 
       const startTime = ctx.currentTime + idx * duration;
@@ -99,7 +106,7 @@ class AudioManagerImpl {
     // Hold last note
     const lastOsc = ctx.createOscillator();
     const lastGain = ctx.createGain();
-    lastOsc.type = "square";
+    lastOsc.type = 'square';
     lastOsc.frequency.value = notes[3];
 
     const lastStartTime = ctx.currentTime + notes.length * duration;
