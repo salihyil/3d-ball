@@ -304,12 +304,19 @@ export default function Game() {
       {/* HUD */}
       <div className="hud">
         <div className="hud-top">
-          <div className="hud-score">
-            <div className="hud-score-blue">{score.blue}</div>
+          <div className="hud-score" data-testid="hud-score">
+            <div className="hud-score-blue" data-testid="score-blue">
+              {score.blue}
+            </div>
             <div className="hud-score-divider" />
-            <div className="hud-score-red">{score.red}</div>
+            <div className="hud-score-red" data-testid="score-red">
+              {score.red}
+            </div>
           </div>
-          <div className={`hud-timer ${timeRemaining < 30 ? 'warning' : ''}`}>
+          <div
+            className={`hud-timer ${timeRemaining < 30 ? 'warning' : ''}`}
+            data-testid="hud-timer"
+          >
             {timerDisplay}
           </div>
         </div>
@@ -382,18 +389,21 @@ export default function Game() {
 
       {/* Countdown Overlay */}
       {gameState === 'countdown' ? (
-        <div className="countdown-overlay">
-          <div className="countdown-number">{countdown}</div>
+        <div className="countdown-overlay" data-testid="countdown-overlay">
+          <div className="countdown-number" data-testid="countdown-number">
+            {countdown}
+          </div>
         </div>
       ) : null}
 
       {/* Goal Scored Overlay */}
       {goalInfo ? (
-        <div className="goal-overlay">
-          <div className={`goal-text ${goalInfo.team}`}>
+        <div className="goal-overlay" data-testid="goal-overlay">
+          <div className={`goal-text ${goalInfo.team}`} data-testid="goal-text">
             {t('game.goal')}
             <div
               style={{ fontSize: '24px', marginTop: '8px', fontWeight: 500 }}
+              data-testid="goal-scorer"
             >
               {goalInfo.scorer}
             </div>
@@ -403,15 +413,23 @@ export default function Game() {
 
       {/* Game Over Overlay */}
       {gameOver && !hostLeft ? (
-        <div className="gameover-overlay">
+        <div className="gameover-overlay" data-testid="gameover-overlay">
           <div className="gameover-card glass-card">
-            <div className="gameover-title">{t('game.game_over')}</div>
-            <div className="gameover-score">
-              <span style={{ color: 'var(--blue-team)' }}>
+            <div className="gameover-title" data-testid="gameover-title">
+              {t('game.game_over')}
+            </div>
+            <div className="gameover-score" data-testid="gameover-score">
+              <span
+                style={{ color: 'var(--blue-team)' }}
+                data-testid="final-score-blue"
+              >
                 {gameOver.score.blue}
               </span>
               {' — '}
-              <span style={{ color: 'var(--red-team)' }}>
+              <span
+                style={{ color: 'var(--red-team)' }}
+                data-testid="final-score-red"
+              >
                 {gameOver.score.red}
               </span>
             </div>

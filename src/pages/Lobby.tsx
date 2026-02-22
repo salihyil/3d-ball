@@ -221,10 +221,13 @@ export default function Lobby() {
                 <LanguageSelector />
               </div>
               <div className="lobby-room-code">
-                <span className="lobby-code">{roomId}</span>
+                <span data-testid="room-code" className="lobby-code">
+                  {roomId}
+                </span>
                 <button
                   className="btn btn-outline lobby-copy-btn"
                   onClick={handleCopyLink}
+                  data-testid="copy-link-btn"
                 >
                   {copied ? t('lobby.copied') : t('lobby.copy_link')}
                 </button>
@@ -243,9 +246,10 @@ export default function Lobby() {
             <div
               className="lobby-teams animate-in"
               style={{ animationDelay: '0.1s' }}
+              data-testid="teams-grid"
             >
               {/* Blue Team */}
-              <div className="team-panel blue">
+              <div className="team-panel blue" data-testid="team-blue">
                 <div
                   className="team-title"
                   style={{ color: 'var(--blue-team)' }}
@@ -264,7 +268,9 @@ export default function Lobby() {
                     <div key={p.id} className="team-player">
                       <span className="mono">{p.nickname}</span>
                       {p.isHost && (
-                        <span className="host-badge">{t('common.host')}</span>
+                        <span className="host-badge" data-testid="host-badge">
+                          {t('common.host')}
+                        </span>
                       )}
                       {p.id === socket.id && (
                         <span className="you-badge">{t('common.you')}</span>
@@ -284,6 +290,7 @@ export default function Lobby() {
                   className="btn btn-blue"
                   style={{ marginTop: '20px', width: '100%' }}
                   onClick={() => handleSwitchTeam('blue')}
+                  data-testid="join-blue-btn"
                   disabled={
                     bluePlayers.find((p: PlayerInfo) => p.id === socket.id)
                       ?.team === 'blue' || bluePlayers.length >= 5
@@ -296,7 +303,7 @@ export default function Lobby() {
               </div>
 
               {/* Red Team */}
-              <div className="team-panel red">
+              <div className="team-panel red" data-testid="team-red">
                 <div
                   className="team-title"
                   style={{ color: 'var(--red-team)' }}
@@ -315,7 +322,9 @@ export default function Lobby() {
                     <div key={p.id} className="team-player">
                       <span className="mono">{p.nickname}</span>
                       {p.isHost && (
-                        <span className="host-badge">{t('common.host')}</span>
+                        <span className="host-badge" data-testid="host-badge">
+                          {t('common.host')}
+                        </span>
                       )}
                       {p.id === socket.id && (
                         <span className="you-badge">{t('common.you')}</span>
@@ -335,6 +344,7 @@ export default function Lobby() {
                   className="btn btn-red"
                   style={{ marginTop: '20px', width: '100%' }}
                   onClick={() => handleSwitchTeam('red')}
+                  data-testid="join-red-btn"
                   disabled={
                     redPlayers.find((p: PlayerInfo) => p.id === socket.id)
                       ?.team === 'red' || redPlayers.length >= 5
@@ -388,6 +398,7 @@ export default function Lobby() {
                   <input
                     type="checkbox"
                     id="enableFeatures"
+                    data-testid="features-checkbox"
                     checked={room.enableFeatures !== false}
                     onChange={handleToggleFeatures}
                     disabled={!isHost}
@@ -610,6 +621,7 @@ export default function Lobby() {
                     sessionStorage.setItem(`in-room-${roomId}`, 'true');
                     handleStart();
                   }}
+                  data-testid="start-game-btn"
                   disabled={!canStart}
                 >
                   {canStart ? t('lobby.start_game') : t('lobby.need_players')}

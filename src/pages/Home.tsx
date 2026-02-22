@@ -92,6 +92,7 @@ export default function Home() {
               <div>
                 <label className="label">{t('home.nickname_label')}</label>
                 <input
+                  data-testid="nickname-input"
                   className="input"
                   type="text"
                   placeholder={t('home.nickname_placeholder')}
@@ -107,6 +108,7 @@ export default function Home() {
               <div>
                 <label className="label">{t('home.duration_label')}</label>
                 <select
+                  data-testid="duration-select"
                   className="select"
                   value={matchDuration}
                   onChange={(e) => setMatchDuration(Number(e.target.value))}
@@ -127,6 +129,7 @@ export default function Home() {
               </div>
 
               <button
+                data-testid="create-room-btn"
                 className="btn btn-primary btn-lg"
                 onClick={handleCreate}
                 disabled={loading}
@@ -138,6 +141,7 @@ export default function Home() {
 
               <div className="join-row">
                 <input
+                  data-testid="room-code-input"
                   className="input"
                   type="text"
                   placeholder={t('home.room_code_placeholder')}
@@ -149,6 +153,7 @@ export default function Home() {
                   }}
                 />
                 <button
+                  data-testid="join-room-btn"
                   className="btn btn-outline"
                   onClick={handleJoin}
                   disabled={loading}
@@ -159,6 +164,7 @@ export default function Home() {
 
               {error ? (
                 <p
+                  data-testid="home-error"
                   style={{
                     color: 'var(--red-team)',
                     fontSize: '13px',

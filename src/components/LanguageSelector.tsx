@@ -43,6 +43,7 @@ export default function LanguageSelector() {
       <button
         className="btn btn-outline lang-btn"
         onClick={() => setIsOpen(!isOpen)}
+        data-testid="lang-selector-btn"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -63,6 +64,7 @@ export default function LanguageSelector() {
               key={lang.code}
               className={`lang-option ${i18n.language === lang.code ? 'active' : ''}`}
               onClick={() => handleLanguageChange(lang.code)}
+              data-testid={`lang-option-${lang.code}`}
             >
               <span className="lang-flag">{lang.flag}</span>
               <span className="lang-name">{lang.name}</span>
