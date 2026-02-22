@@ -49,6 +49,7 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
                 className="btn-kick"
                 onClick={() => onKick(p.id)}
                 title={t('lobby.kick_btn')}
+                data-tooltip={t('lobby.kick_btn')}
               >
                 ✕
               </button>
