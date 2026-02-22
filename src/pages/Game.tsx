@@ -1,21 +1,24 @@
 import { Canvas } from '@react-three/fiber';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import Chat from '../components/Chat';
 import GameScene from '../components/GameScene';
+import CountdownOverlay from '../components/HUD/CountdownOverlay';
+import GameOverOverlay from '../components/HUD/GameOverOverlay';
+import GoalOverlay from '../components/HUD/GoalOverlay';
+import { HUD } from '../components/HUD/HUD';
 import MiniMap from '../components/MiniMap';
 import { useGameInput } from '../hooks/useGameInput';
 import { socket, usePing, useSnapshotBuffer } from '../hooks/useNetwork';
 import { useSoundSettings } from '../hooks/useSoundSettings';
-import type { GameSnapshot, RoomInfo, Team } from '../types';
+import type {
+  GameSnapshot,
+  PlayerInfo,
+  PlayerState,
+  RoomInfo,
+  Team,
+} from '../types';
 import { AudioManager } from '../utils/AudioManager';
 
 export default function Game() {
@@ -28,7 +31,6 @@ export default function Game() {
   const seqRef = useRef(0);
   const sendIntervalRef = useRef<number | null>(null);
 
-  // Only these use React state (infrequent updates)
   const [score, setScore] = useState({ blue: 0, red: 0 });
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [gameState, setGameState] = useState<string>('countdown');
@@ -43,93 +45,58 @@ export default function Game() {
   } | null>(null);
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [boostCooldown, setBoostCooldown] = useState(0);
-  const [activePowerUp, setActivePowerUp] = useState<{
-    type: string;
-    timeLeft: number;
-  } | null>(null);
+  const [activePowerUp, setActivePowerUp] = useState<
+    PlayerState['activePowerUp'] | null
+  >(null);
   const [speed, setSpeed] = useState(0);
   const [ping, setPing] = useState(0);
-  const [, setShowControls] = useState(true);
   const [hostLeft, setHostLeft] = useState(false);
   const { isSoundEnabled, toggleSound } = useSoundSettings();
 
-  // My team (from session)
   const myTeam = useRef<Team>('blue');
 
-  // Format timer
-  const timerDisplay = useMemo(() => {
-    const minutes = Math.floor(timeRemaining / 60);
-    const seconds = Math.floor(timeRemaining % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  }, [timeRemaining]);
-
   useEffect(() => {
-    // If not joined through lobby, go there first
     if (!sessionStorage.getItem(`in-room-${roomId}`)) {
       navigate(`/lobby/${roomId}`);
       return;
     }
 
-    // Read custom pitch texture
-    localStorage.getItem('bb-custom-pitch');
-
-    // ---- Re-join room to associate this socket with the room on server ----
-    const nickname = sessionStorage.getItem('bb-nickname') || 'Player';
     const rejoinRoom = () => {
+      const nickname = sessionStorage.getItem('bb-nickname') || 'Player';
       const hostToken = sessionStorage.getItem(`host-token-${roomId}`);
       socket.emit(
         'join-room',
         { roomId, nickname, hostToken },
-        (res: {
-          success: boolean;
-          room?: { players: { id: string; team: string }[]; gameState: string };
-        }) => {
+        (res: { success: boolean; error?: string; room?: RoomInfo }) => {
           if (res.success && res.room) {
             const me = res.room.players.find(
-              (p: { id: string }) => p.id === socket.id
+              (p: PlayerInfo) => p.id === socket.id
             );
-            if (me) {
-              myTeam.current = me.team as Team;
-            }
+            if (me) myTeam.current = me.team as Team;
             setRoom(res.room as RoomInfo);
-            if (res.room.gameState !== 'lobby') {
-              socket.emit('enter-match');
-            }
+            if (res.room.gameState !== 'lobby') socket.emit('enter-match');
           }
         }
       );
     };
 
-    // Join on mount
     rejoinRoom();
-
-    // Re-join on reconnect (e.g. after server restart)
     socket.on('connect', rejoinRoom);
 
-    // ---- Receive snapshots (update refs, minimal React state) ----
     const handleSnapshot = (snapshot: GameSnapshot) => {
       push(snapshot);
-
-      // Update React state only for HUD values (throttled)
       setScore(snapshot.score);
       setTimeRemaining(snapshot.timeRemaining);
       setGameState(snapshot.gameState);
+      if (snapshot.countdown !== undefined) setCountdown(snapshot.countdown);
 
-      if (snapshot.countdown !== undefined) {
-        setCountdown(snapshot.countdown);
-      }
-
-      // Detect powerup pickup
       const myState = snapshot.players[socket.id!];
       if (myState) {
         setBoostCooldown(myState.boostCooldown);
         setActivePowerUp(myState.activePowerUp || null);
         myTeam.current = myState.team;
-
-        // Calculate and set speed (magnitude of velocity vector)
         const v = myState.velocity;
-        const currentSpeed = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-        setSpeed(Math.round(currentSpeed));
+        setSpeed(Math.round(Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)));
       }
     };
 
@@ -140,32 +107,20 @@ export default function Game() {
     }) => {
       setGoalInfo(data);
       setScore(data.score);
-      if (isSoundEnabled) {
-        AudioManager.playGoal();
-      }
+      if (isSoundEnabled) AudioManager.playGoal();
       setTimeout(() => setGoalInfo(null), 2000);
     };
 
     const handleGameEnded = (data: {
       score: { blue: number; red: number };
-      winner: string;
-    }) => {
-      setGameOver(data);
-    };
-
+      winner: Team | 'draw';
+    }) => setGameOver(data);
     const handleGameStart = (data: { countdown: number }) => {
       setCountdown(data.countdown);
       setGameState('countdown');
-      setShowControls(false); // Force close the controls overlay so the countdown takes priority
     };
-
-    const handleRoomDestroyed = () => {
-      setHostLeft(true);
-    };
-
-    const handleRoomUpdate = (updatedRoom: RoomInfo) => {
-      setRoom(updatedRoom);
-    };
+    const handleRoomDestroyed = () => setHostLeft(true);
+    const handleRoomUpdate = (updatedRoom: RoomInfo) => setRoom(updatedRoom);
 
     socket.on('game-snapshot', handleSnapshot);
     socket.on('goal-scored', handleGoalScored);
@@ -174,23 +129,13 @@ export default function Game() {
     socket.on('room-destroyed', handleRoomDestroyed);
     socket.on('room-update', handleRoomUpdate);
 
-    // ---- Send inputs at 20 Hz ----
     sendIntervalRef.current = window.setInterval(() => {
       const input = getInput();
       seqRef.current++;
-      socket.volatile.emit('player-input', {
-        dx: input.dx,
-        dz: input.dz,
-        boost: input.boost,
-        jump: input.jump,
-        seq: seqRef.current,
-      });
-    }, 50); // 20 Hz
+      socket.volatile.emit('player-input', { ...input, seq: seqRef.current });
+    }, 50);
 
-    // ---- Ping display update ----
-    const pingInterval = setInterval(() => {
-      setPing(pingRef.current);
-    }, 3000);
+    const pingInterval = setInterval(() => setPing(pingRef.current), 3000);
 
     return () => {
       socket.off('connect', rejoinRoom);
@@ -203,8 +148,7 @@ export default function Game() {
       if (sendIntervalRef.current) clearInterval(sendIntervalRef.current);
       clearInterval(pingInterval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, push, getInput]);
+  }, [roomId, push, getInput, isSoundEnabled, navigate, pingRef]);
 
   const handleBackToLobby = useCallback(() => {
     setGameOver(null);
@@ -216,75 +160,13 @@ export default function Game() {
     navigate('/');
   }, [navigate]);
 
-  // Boost bar percentage (4s cooldown)
   const boostPercent = Math.max(
     0,
     Math.min(100, (1 - boostCooldown / 4) * 100)
   );
 
-  const getPowerUpIcon = (type: string) => {
-    switch (type) {
-      case 'magnet':
-        return '🧲';
-      case 'freeze':
-        return '🧊';
-      case 'rocket':
-        return '🚀';
-      case 'frozen':
-        return '❄️';
-      default:
-        return '⭐';
-    }
-  };
-
-  const getPowerUpColor = (type: string) => {
-    switch (type) {
-      case 'magnet':
-        return '#a855f7';
-      case 'freeze':
-        return '#38bdf8';
-      case 'rocket':
-        return '#f97316';
-      case 'frozen':
-        return '#87ceeb';
-      default:
-        return '#fbbf24';
-    }
-  };
-
-  const getPowerUpName = (type: string) => {
-    switch (type) {
-      case 'magnet':
-        return t('game.powerups.magnet');
-      case 'freeze':
-        return t('game.powerups.freeze');
-      case 'rocket':
-        return t('game.powerups.rocket');
-      case 'frozen':
-        return t('game.powerups.frozen');
-      default:
-        return t('game.powerups.generic');
-    }
-  };
-
-  const getPowerUpDescription = (type: string) => {
-    switch (type) {
-      case 'magnet':
-        return t('game.powerups.magnet_desc');
-      case 'freeze':
-        return t('game.powerups.freeze_desc');
-      case 'rocket':
-        return t('game.powerups.rocket_desc');
-      case 'frozen':
-        return t('game.powerups.frozen_desc');
-      default:
-        return t('game.powerups.generic_desc');
-    }
-  };
-
   return (
     <div className="game-container">
-      {/* 3D Canvas */}
       <Canvas
         className="game-canvas"
         camera={{ fov: 60, near: 0.1, far: 500, position: [0, 30, 40] }}
@@ -301,157 +183,42 @@ export default function Game() {
         </Suspense>
       </Canvas>
 
-      {/* HUD */}
-      <div className="hud">
-        <div className="hud-top">
-          <div className="hud-score" data-testid="hud-score">
-            <div className="hud-score-blue" data-testid="score-blue">
-              {score.blue}
-            </div>
-            <div className="hud-score-divider" />
-            <div className="hud-score-red" data-testid="score-red">
-              {score.red}
-            </div>
-          </div>
-          <div
-            className={`hud-timer ${timeRemaining < 30 ? 'warning' : ''}`}
-            data-testid="hud-timer"
-          >
-            {timerDisplay}
-          </div>
-        </div>
-
-        <div className="hud-ping">{ping}ms</div>
-
-        <button
-          className="hud-sound-toggle"
-          onClick={toggleSound}
-          title="Toggle Sound"
-        >
-          {' '}
-          {isSoundEnabled ? '🔊' : '🔇'}
-        </button>
-
-        {/* MiniMap */}
+      <HUD.Root
+        value={{
+          score,
+          timeRemaining,
+          speed,
+          boostPercent,
+          boostCooldown,
+          ping,
+          activePowerUp,
+          isSoundEnabled,
+          toggleSound,
+        }}
+      >
+        <HUD.ScoreAndTimer />
+        <HUD.Ping />
+        <HUD.SoundToggle />
         <div className="hud-minimap-wrapper">
           <MiniMap latestRef={latestRef} />
         </div>
-
-        {/* Speedometer */}
-        <div className="hud-speedometer">
-          <div className="hud-speed-value">{speed}</div>
-          <div className="hud-speed-unit">{t('game.kph')}</div>
-        </div>
-
-        <div className="hud-boost">
-          <div className="hud-boost-label">{t('game.boost')}</div>
-          <div className="hud-boost-bar">
-            <div
-              className={`hud-boost-fill ${boostCooldown > 0 ? 'cooldown' : ''}`}
-              style={{ width: `${boostPercent}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Active PowerUp */}
-        {activePowerUp ? (
-          <div
-            className="hud-powerup-container"
-            style={
-              {
-                '--glow-color': getPowerUpColor(activePowerUp.type),
-              } as React.CSSProperties
-            }
-          >
-            <div className="hud-powerup-details">
-              <div className="hud-powerup-name glow-text">
-                {getPowerUpName(activePowerUp.type)}
-              </div>
-              <div className="hud-powerup-desc">
-                {getPowerUpDescription(activePowerUp.type)}
-              </div>
-            </div>
-
-            <div className="hud-powerup glow">
-              <div className="hud-powerup-icon">
-                {getPowerUpIcon(activePowerUp.type)}
-              </div>
-              <div className="hud-powerup-timer">
-                {Math.ceil(activePowerUp.timeLeft)}
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Chat Overlay */}
+        <HUD.Speedometer />
+        <HUD.BoostBar />
+        <HUD.PowerUp />
         <Chat isGameOverlay />
-      </div>
+      </HUD.Root>
 
-      {/* Countdown Overlay */}
-      {gameState === 'countdown' ? (
-        <div className="countdown-overlay" data-testid="countdown-overlay">
-          <div className="countdown-number" data-testid="countdown-number">
-            {countdown}
-          </div>
-        </div>
-      ) : null}
+      {gameState === 'countdown' && <CountdownOverlay countdown={countdown} />}
+      {goalInfo && <GoalOverlay goalInfo={goalInfo} />}
+      {gameOver && !hostLeft && (
+        <GameOverOverlay
+          gameOver={gameOver}
+          onBackHome={handleBackHome}
+          onBackToLobby={handleBackToLobby}
+        />
+      )}
 
-      {/* Goal Scored Overlay */}
-      {goalInfo ? (
-        <div className="goal-overlay" data-testid="goal-overlay">
-          <div className={`goal-text ${goalInfo.team}`} data-testid="goal-text">
-            {t('game.goal')}
-            <div
-              style={{ fontSize: '24px', marginTop: '8px', fontWeight: 500 }}
-              data-testid="goal-scorer"
-            >
-              {goalInfo.scorer}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Game Over Overlay */}
-      {gameOver && !hostLeft ? (
-        <div className="gameover-overlay" data-testid="gameover-overlay">
-          <div className="gameover-card glass-card">
-            <div className="gameover-title" data-testid="gameover-title">
-              {t('game.game_over')}
-            </div>
-            <div className="gameover-score" data-testid="gameover-score">
-              <span
-                style={{ color: 'var(--blue-team)' }}
-                data-testid="final-score-blue"
-              >
-                {gameOver.score.blue}
-              </span>
-              {' — '}
-              <span
-                style={{ color: 'var(--red-team)' }}
-                data-testid="final-score-red"
-              >
-                {gameOver.score.red}
-              </span>
-            </div>
-            <div className="gameover-winner">
-              {gameOver.winner === 'draw'
-                ? t('game.draw')
-                : t('game.wins', { team: t(`game.${gameOver.winner}`) })}
-            </div>
-            <div className="gameover-actions">
-              <button className="btn btn-outline" onClick={handleBackHome}>
-                {t('game.home')}
-              </button>
-              <button className="btn btn-primary" onClick={handleBackToLobby}>
-                {t('game.back_to_lobby')}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Host Left Overlay */}
-      {hostLeft ? (
+      {hostLeft && (
         <div className="gameover-overlay" style={{ zIndex: 1000 }}>
           <div className="gameover-card glass-card">
             <div
@@ -460,14 +227,7 @@ export default function Game() {
             >
               {t('lobby.host_disconnected')}
             </div>
-            <div
-              style={{
-                color: 'var(--text-secondary)',
-                marginBottom: '24px',
-                textAlign: 'center',
-                lineHeight: 1.5,
-              }}
-            >
+            <div className="host-left-desc">
               {t('game.host_disconnected_desc')}
             </div>
             <div
@@ -480,10 +240,9 @@ export default function Game() {
             </div>
           </div>
         </div>
-      ) : null}
+      )}
 
-      {/* Modern Controls Hint - Only shown during Countdown and early Game */}
-      {gameState === 'countdown' ? (
+      {gameState === 'countdown' && (
         <div className="controls-hint-overlay">
           <div className="controls-hint-card">
             <h3>{t('game.how_to_play')}</h3>
@@ -510,7 +269,15 @@ export default function Game() {
             </div>
           </div>
         </div>
-      ) : null}
+      )}
+      <style>{`
+        .host-left-desc {
+          color: var(--text-secondary);
+          margin-bottom: 24px;
+          text-align: center;
+          line-height: 1.5;
+        }
+      `}</style>
     </div>
   );
 }
