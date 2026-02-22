@@ -172,6 +172,7 @@ export default function Lobby() {
           <div
             className="glass-card animate-in text-center"
             style={{ padding: '40px', maxWidth: '400px' }}
+            data-testid="kicked-message"
           >
             <h2 style={{ color: '#ff4a4a', marginBottom: '16px' }}>
               {t('lobby.kicked_title')}

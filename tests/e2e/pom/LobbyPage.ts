@@ -8,6 +8,8 @@ export class LobbyPage {
   readonly joinRedBtn: Locator;
   readonly teamsGrid: Locator;
   readonly hostBadge: Locator;
+  readonly kickButtons: Locator;
+  readonly kickedMessage: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -17,6 +19,8 @@ export class LobbyPage {
     this.joinRedBtn = page.getByTestId('join-red-btn');
     this.teamsGrid = page.getByTestId('teams-grid');
     this.hostBadge = page.getByTestId('host-badge');
+    this.kickButtons = page.getByTestId('btn-kick');
+    this.kickedMessage = page.getByTestId('kicked-message');
   }
 
   async getRoomCode() {
@@ -34,5 +38,11 @@ export class LobbyPage {
     } else {
       await this.joinRedBtn.click();
     }
+  }
+
+  async kickPlayer(nickname: string) {
+    const playerRow = this.page.locator('.team-player', { hasText: nickname });
+    const kickBtn = playerRow.getByTestId('btn-kick');
+    await kickBtn.click();
   }
 }
