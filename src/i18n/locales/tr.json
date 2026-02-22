@@ -48,7 +48,7 @@
     "host_disconnected_desc": "Kurucu beklenmedik bir şekilde oyundan ayrıldı veya bağlantısı koptu. Bu oda kapatıldı.",
     "return_home": "Ana Menüye Dön",
     "connecting": "Odaya bağlanılıyor...",
-    "kick_btn": "Kick",
+    "kick_btn": "At",
     "kicked_title": "Odadan Çıkarıldınız",
     "kicked_desc": "Oyun kurucusu tarafından odadan çıkarıldınız."
   },
