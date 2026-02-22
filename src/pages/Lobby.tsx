@@ -33,6 +33,7 @@ export default function Lobby() {
   const navigate = useNavigate();
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [hostLeft, setHostLeft] = useState(false);
+  const [isKicked, setIsKicked] = useState(false);
   const { isSoundEnabled, toggleSound } = useSoundSettings();
 
   const [pitchTexture, setPitchTexture] = useState<string>('');
@@ -66,15 +67,18 @@ export default function Lobby() {
       navigate(`/game/${roomId}`);
     };
     const handleRoomDestroyed = () => setHostLeft(true);
+    const handleKicked = () => setIsKicked(true);
 
     socket.on('room-update', handleRoomUpdate);
     socket.on('game-start', handleGameStart);
     socket.on('room-destroyed', handleRoomDestroyed);
+    socket.on('kicked', handleKicked);
 
     return () => {
       socket.off('room-update', handleRoomUpdate);
       socket.off('game-start', handleGameStart);
       socket.off('room-destroyed', handleRoomDestroyed);
+      socket.off('kicked', handleKicked);
     };
   }, [roomId, navigate]);
 
@@ -89,6 +93,9 @@ export default function Lobby() {
   }, []);
 
   const handleStart = useCallback(() => socket.emit('start-game'), []);
+  const handleKick = useCallback((targetId: string) => {
+    socket.emit('kick-player', { targetId });
+  }, []);
   const handleLeave = useCallback(() => {
     socket.emit('leave-room');
     navigate('/');
@@ -143,6 +150,34 @@ export default function Lobby() {
             </h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
               {t('lobby.host_disconnected_desc')}
+            </p>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%' }}
+              onClick={() => navigate('/')}
+            >
+              {t('lobby.return_home')}
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (isKicked) {
+    return (
+      <>
+        <div className="bg-animated" />
+        <div className="page-center">
+          <div
+            className="glass-card animate-in text-center"
+            style={{ padding: '40px', maxWidth: '400px' }}
+          >
+            <h2 style={{ color: '#ff4a4a', marginBottom: '16px' }}>
+              {t('lobby.kicked_title')}
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
+              {t('lobby.kicked_desc')}
             </p>
             <button
               className="btn btn-primary"
@@ -212,11 +247,15 @@ export default function Lobby() {
                 team="blue"
                 players={bluePlayers}
                 onJoin={handleSwitchTeam}
+                onKick={handleKick}
+                isHostUser={isHost}
               />
               <TeamPanel
                 team="red"
                 players={redPlayers}
                 onJoin={handleSwitchTeam}
+                onKick={handleKick}
+                isHostUser={isHost}
               />
             </div>
 

@@ -47,7 +47,10 @@
     "host_disconnected": "Kurucu Ayrıldı",
     "host_disconnected_desc": "Kurucu beklenmedik bir şekilde oyundan ayrıldı veya bağlantısı koptu. Bu oda kapatıldı.",
     "return_home": "Ana Menüye Dön",
-    "connecting": "Odaya bağlanılıyor..."
+    "connecting": "Odaya bağlanılıyor...",
+    "kick_btn": "Kick",
+    "kicked_title": "Odadan Çıkarıldınız",
+    "kicked_desc": "Oyun kurucusu tarafından odadan çıkarıldınız."
   },
   "game": {
     "kph": "KM/H",
@@ -83,6 +86,7 @@
   "chat": {
     "player_joined": "{{nickname}} odaya katıldı.",
     "player_left": "{{nickname}} odadan ayrıldı.",
-    "player_switched": "{{nickname}} {{team}} takımına geçti."
+    "player_switched": "{{nickname}} {{team}} takımına geçti.",
+    "player_kicked": "{{nickname}} host tarafından odadan çıkarıldı."
   }
 }

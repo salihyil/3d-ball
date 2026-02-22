@@ -7,12 +7,16 @@ interface TeamPanelProps {
   team: Team;
   players: PlayerInfo[];
   onJoin: (team: Team) => void;
+  onKick: (targetId: string) => void;
+  isHostUser: boolean;
 }
 
 export const TeamPanel: React.FC<TeamPanelProps> = ({
   team,
   players,
   onJoin,
+  onKick,
+  isHostUser,
 }) => {
   const { t } = useTranslation();
 
@@ -39,6 +43,15 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
             )}
             {p.id === socket.id && (
               <span className="you-badge">{t('common.you')}</span>
+            )}
+            {isHostUser && p.id !== socket.id && (
+              <button
+                className="btn-kick"
+                onClick={() => onKick(p.id)}
+                title={t('lobby.kick_btn')}
+              >
+                ✕
+              </button>
             )}
           </div>
         ))}

@@ -47,7 +47,10 @@
     "host_disconnected": "Host Disconnected",
     "host_disconnected_desc": "The host has unexpectedly left the game or their connection dropped. This room has been closed.",
     "return_home": "Return to Main Menu",
-    "connecting": "Connecting to room..."
+    "connecting": "Connecting to room...",
+    "kick_btn": "Kick",
+    "kicked_title": "You Were Kicked",
+    "kicked_desc": "You have been removed from the room by the host."
   },
   "game": {
     "kph": "KPH",
@@ -83,6 +86,7 @@
   "chat": {
     "player_joined": "{{nickname}} joined the room.",
     "player_left": "{{nickname}} left the room.",
-    "player_switched": "{{nickname}} switched to {{team}} team."
+    "player_switched": "{{nickname}} switched to {{team}} team.",
+    "player_kicked": "{{nickname}} was kicked from the room by the host."
   }
 }
