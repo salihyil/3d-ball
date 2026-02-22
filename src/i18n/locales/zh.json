@@ -47,7 +47,10 @@
     "host_disconnected": "房主已断开连接",
     "host_disconnected_desc": "房主意外离开了游戏或连接中断。此房间已关闭。",
     "return_home": "返回主菜单",
-    "connecting": "正在连接到房间..."
+    "connecting": "正在连接到房间...",
+    "kick_btn": "踢出",
+    "kicked_title": "你被踢出了房间",
+    "kicked_desc": "你已被房主移出房间。"
   },
   "game": {
     "kph": "时速 (KPH)",
@@ -83,6 +86,7 @@
   "chat": {
     "player_joined": "{{nickname}} 加入了房间。",
     "player_left": "{{nickname}} 离开了房间。",
-    "player_switched": "{{nickname}} 切换到了 {{team}} 队。"
+    "player_switched": "{{nickname}} 切换到了 {{team}} 队。",
+    "player_kicked": "{{nickname}} 被房主踢出了房间。"
   }
 }

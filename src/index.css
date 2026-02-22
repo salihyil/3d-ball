@@ -585,40 +585,22 @@ h1 {
 }
 
 .team-player .btn-kick {
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
   color: #ff4a4a;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 12px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-left: 10px;
-  position: relative;
-}
-
-.team-player .btn-kick::before {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: 120%;
-  right: 0;
-  background: #dc2626;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
   font-size: 10px;
   font-family: var(--font-display);
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
-  opacity: 0;
-  transform: translateY(10px);
-  pointer-events: none;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .team-player .btn-kick:hover {
@@ -627,11 +609,6 @@ h1 {
   border-color: #ff4a4a;
   box-shadow: 0 0 15px rgba(220, 38, 38, 0.4);
   transform: scale(1.05);
-}
-
-.team-player .btn-kick:hover::before {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .team-player .you-badge {

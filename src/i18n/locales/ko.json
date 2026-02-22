@@ -47,7 +47,10 @@
     "host_disconnected": "방장 연결 끊김",
     "host_disconnected_desc": "방장이 예기치 않게 나갔거나 연결이 끊어졌습니다. 방이 폐쇄되었습니다.",
     "return_home": "메인 메뉴로 돌아가기",
-    "connecting": "방에 연결 중..."
+    "connecting": "방에 연결 중...",
+    "kick_btn": "추방",
+    "kicked_title": "방에서 추방됨",
+    "kicked_desc": "방장에 의해 방에서 추방되었습니다."
   },
   "game": {
     "kph": "KPH",
@@ -83,6 +86,7 @@
   "chat": {
     "player_joined": "{{nickname}}님이 입장하셨습니다.",
     "player_left": "{{nickname}}님이 퇴장하셨습니다.",
-    "player_switched": "{{nickname}}님이 {{team}} 팀으로 변경하셨습니다."
+    "player_switched": "{{nickname}}님이 {{team}} 팀으로 변경하셨습니다.",
+    "player_kicked": "{{nickname}}님은 방장에 의해 강제 퇴장되었습니다."
   }
 }

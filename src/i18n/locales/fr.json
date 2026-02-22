@@ -47,7 +47,10 @@
     "host_disconnected": "Hôte déconnecté",
     "host_disconnected_desc": "L'hôte a quitté la partie ou a perdu la connexion. Cette salle a été fermée.",
     "return_home": "Retour au menu principal",
-    "connecting": "Connexion à la salle..."
+    "connecting": "Connexion à la salle...",
+    "kick_btn": "Exclure",
+    "kicked_title": "Vous avez été exclu",
+    "kicked_desc": "L'hôte vous a exclu de la salle."
   },
   "game": {
     "kph": "KM/H",
@@ -83,6 +86,7 @@
   "chat": {
     "player_joined": "{{nickname}} a rejoint la salle.",
     "player_left": "{{nickname}} a quitté la salle.",
-    "player_switched": "{{nickname}} est passé dans l'équipe {{team}}."
+    "player_switched": "{{nickname}} est passé dans l'équipe {{team}}.",
+    "player_kicked": "{{nickname}} a été exclu de la salle par l'hôte."
   }
 }

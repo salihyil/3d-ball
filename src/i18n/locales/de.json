@@ -47,7 +47,10 @@
     "host_disconnected": "Host getrennt",
     "host_disconnected_desc": "Der Host hat das Spiel verlassen oder die Verbindung verloren. Der Raum wurde geschlossen.",
     "return_home": "Hauptmenü",
-    "connecting": "Verbindung zum Raum wird hergestellt..."
+    "connecting": "Verbindung zum Raum wird hergestellt...",
+    "kick_btn": "Kicken",
+    "kicked_title": "Rausgeworfen",
+    "kicked_desc": "Du wurdest vom Host aus dem Raum geworfen."
   },
   "game": {
     "kph": "KM/H",
@@ -83,6 +86,7 @@
   "chat": {
     "player_joined": "{{nickname}} ist dem Raum beigetreten.",
     "player_left": "{{nickname}} hat den Raum verlassen.",
-    "player_switched": "{{nickname}} ist zum {{team}} Team gewechselt."
+    "player_switched": "{{nickname}} ist zum {{team}} Team gewechselt.",
+    "player_kicked": "{{nickname}} wurde vom Host aus dem Raum geworfen."
   }
 }

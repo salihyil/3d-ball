@@ -44,14 +44,14 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
             {p.id === socket.id && (
               <span className="you-badge">{t('common.you')}</span>
             )}
+            <div style={{ flex: 1 }} />
             {isHostUser && p.id !== socket.id && (
               <button
                 className="btn-kick"
                 onClick={() => onKick(p.id)}
                 title={t('lobby.kick_btn')}
-                data-tooltip={t('lobby.kick_btn')}
               >
-                ✕
+                {t('lobby.kick_btn')}
               </button>
             )}
           </div>

@@ -47,7 +47,10 @@
     "host_disconnected": "Anfitrión desconectado",
     "host_disconnected_desc": "El anfitrión ha abandonado o ha perdido la conexión. Esta sala se ha cerrado.",
     "return_home": "Volver al menú principal",
-    "connecting": "Conectando a la sala..."
+    "connecting": "Conectando a la sala...",
+    "kick_btn": "Expulsar",
+    "kicked_title": "Fuiste Expulsado",
+    "kicked_desc": "El anfitrión te ha expulsado de la sala."
   },
   "game": {
     "kph": "KM/H",
@@ -83,6 +86,7 @@
   "chat": {
     "player_joined": "{{nickname}} se ha unido a la sala.",
     "player_left": "{{nickname}} ha abandonado la sala.",
-    "player_switched": "{{nickname}} se ha cambiado al equipo {{team}}."
+    "player_switched": "{{nickname}} se ha cambiado al equipo {{team}}.",
+    "player_kicked": "{{nickname}} fue expulsado de la sala por el anfitrión."
   }
 }

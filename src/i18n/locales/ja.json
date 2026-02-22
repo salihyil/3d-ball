@@ -47,7 +47,10 @@
     "host_disconnected": "ホストが切断されました",
     "host_disconnected_desc": "ホストが予期せず退出したか、接続が切れました。ルームは閉じられました。",
     "return_home": "メインメニューに戻る",
-    "connecting": "ルームに接続中..."
+    "connecting": "ルームに接続中...",
+    "kick_btn": "キック",
+    "kicked_title": "キックされました",
+    "kicked_desc": "ホストによってルームから削除されました。"
   },
   "game": {
     "kph": "KPH",
@@ -83,6 +86,7 @@
   "chat": {
     "player_joined": "{{nickname}}さんが入室しました。",
     "player_left": "{{nickname}}さんが退室しました。",
-    "player_switched": "{{nickname}}さんが{{team}}チームに移動しました。"
+    "player_switched": "{{nickname}}さんが{{team}}チームに移動しました。",
+    "player_kicked": "{{nickname}}はホストによってルームからキックされました。"
   }
 }
