@@ -327,6 +327,48 @@ io.on('connection', (socket) => {
     currentRoomId = null;
   };
 
+  // ---- Kick Player ----
+  socket.on('kick-player', (data) => {
+    if (!currentRoomId) return;
+    const { targetId } = data;
+    if (!targetId) return;
+
+    const room = rooms.get(currentRoomId);
+    if (!room) return;
+
+    // Only host can kick
+    if (!room.isHost(socket.id)) return;
+
+    // Cannot kick yourself
+    if (targetId === socket.id) return;
+
+    const targetNickname = room.getPlayerNickname(targetId);
+    console.log(
+      `[KICK] Host ${socket.id} kicked ${targetNickname} (${targetId}) from ${currentRoomId}`
+    );
+
+    // Notify the target player they were kicked
+    io.to(targetId).emit('kicked', { reason: 'kicked_by_host' });
+
+    // Remove the player from the room
+    room.removePlayer(targetId);
+
+    // Broadcast update to remaining players
+    io.to(currentRoomId).emit('room-update', room.getRoomInfo());
+    io.to(currentRoomId).emit('player-left', {
+      nickname: targetNickname,
+      reason: 'kicked',
+    });
+
+    sendChatMessage(
+      `${targetNickname} host tarafından odadan çıkarıldı.`,
+      'system',
+      null,
+      'chat.player_kicked',
+      { nickname: targetNickname }
+    );
+  });
+
   socket.on('leave-room', leaveRoom);
   socket.on('disconnect', () => {
     console.log(`[DISCONNECT] ${socket.id}`);
