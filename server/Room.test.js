@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Room } from './Room.js';
 
 describe('Room', () => {
@@ -11,6 +11,13 @@ describe('Room', () => {
       emit: vi.fn(),
     };
     room = new Room('test-room', 5, ioMock, true);
+  });
+
+  afterEach(() => {
+    if (room) {
+      room.destroy();
+    }
+    vi.clearAllMocks();
   });
 
   it('should initialize with correct properties', () => {

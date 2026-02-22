@@ -22,6 +22,16 @@ export class Room {
     this.lastActivity = Date.now();
     this.fieldTexture = '';
     this.hostToken = null;
+    this.timers = new Set(); // Track all timeouts for cleanup
+  }
+
+  _setTimeout(callback, delay) {
+    const timer = setTimeout(() => {
+      this.timers.delete(timer);
+      callback();
+    }, delay);
+    this.timers.add(timer);
+    return timer;
   }
 
   addPlayer(socket, nickname, isHost) {
@@ -128,7 +138,7 @@ export class Room {
     // Start physics loop immediately to broadcast the countdown at 30Hz
     this.gameLoop.start();
 
-    setTimeout(() => {
+    this._setTimeout(() => {
       if (this.gameState === 'countdown') {
         this.gameState = 'playing';
       }
@@ -154,10 +164,10 @@ export class Room {
       score: { ...this.score },
     });
 
-    setTimeout(() => {
+    this._setTimeout(() => {
       if (this.gameState === 'goalScored') {
         this.gameState = 'playing';
-        this.gameLoop.resetPositions();
+        if (this.gameLoop) this.gameLoop.resetPositions();
       }
     }, GOAL_RESET_SECONDS * 1000);
   }
@@ -196,7 +206,7 @@ export class Room {
     });
 
     // Reset to lobby after 5s
-    setTimeout(() => {
+    this._setTimeout(() => {
       this.gameState = 'lobby';
       this.io.to(this.roomId).emit('room-update', this.getRoomInfo());
     }, 5000);
@@ -265,6 +275,10 @@ export class Room {
       this.gameLoop.stop();
       this.gameLoop = null;
     }
+    for (const timer of this.timers) {
+      clearTimeout(timer);
+    }
+    this.timers.clear();
   }
 
   _getHostId() {
