@@ -34,6 +34,7 @@ export default function Lobby() {
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [hostLeft, setHostLeft] = useState(false);
   const [isKicked, setIsKicked] = useState(false);
+  const [isDisconnected, setIsDisconnected] = useState(false);
   const { isSoundEnabled, toggleSound } = useSoundSettings();
 
   const [pitchTexture, setPitchTexture] = useState<string>('');
@@ -41,26 +42,31 @@ export default function Lobby() {
   const dummyLatestRef = useRef<GameSnapshot | null>(null);
 
   useEffect(() => {
-    const hostToken = sessionStorage.getItem(`host-token-${roomId}`);
-    const currentNickname =
-      socket.auth?.nickname || sessionStorage.getItem('bb-nickname');
+    const joinRoom = () => {
+      const hostToken = sessionStorage.getItem(`host-token-${roomId}`);
+      const currentNickname =
+        socket.auth?.nickname || sessionStorage.getItem('bb-nickname');
 
-    if (!currentNickname) {
-      navigate(`/?join=${roomId}`);
-      return;
-    }
-
-    socket.emit(
-      'join-room',
-      { roomId: roomId!, nickname: currentNickname, hostToken },
-      (res: { success: boolean; error?: string; room?: RoomInfo }) => {
-        if (res.room) {
-          setRoom(res.room);
-        } else if (res.error === 'Room not found') {
-          navigate('/');
-        }
+      if (!currentNickname) {
+        navigate(`/?join=${roomId}`);
+        return;
       }
-    );
+
+      socket.emit(
+        'join-room',
+        { roomId: roomId!, nickname: currentNickname, hostToken },
+        (res: { success: boolean; error?: string; room?: RoomInfo }) => {
+          if (res.room) {
+            setRoom(res.room);
+            setIsDisconnected(false); // Hide overlay ONLY on success
+          } else if (res.error === 'Room not found') {
+            navigate('/');
+          }
+        }
+      );
+    };
+
+    joinRoom();
 
     const handleRoomUpdate = (roomInfo: RoomInfo) => setRoom(roomInfo);
     const handleGameStart = () => {
@@ -69,17 +75,26 @@ export default function Lobby() {
     };
     const handleRoomDestroyed = () => setHostLeft(true);
     const handleKicked = () => setIsKicked(true);
+    const handleSocketDisconnect = () => setIsDisconnected(true);
+    const handleSocketConnect = () => {
+      // setIsDisconnected(false); // REMOVED: Wait for joinRoom ACK
+      joinRoom(); // RE-JOIN ON RECONNECT
+    };
 
     socket.on('room-update', handleRoomUpdate);
     socket.on('game-start', handleGameStart);
     socket.on('room-destroyed', handleRoomDestroyed);
     socket.on('kicked', handleKicked);
+    window.addEventListener('socket-disconnect', handleSocketDisconnect);
+    socket.on('connect', handleSocketConnect);
 
     return () => {
       socket.off('room-update', handleRoomUpdate);
       socket.off('game-start', handleGameStart);
       socket.off('room-destroyed', handleRoomDestroyed);
       socket.off('kicked', handleKicked);
+      window.removeEventListener('socket-disconnect', handleSocketDisconnect);
+      socket.off('connect', handleSocketConnect);
     };
   }, [roomId, navigate]);
 
@@ -136,6 +151,35 @@ export default function Lobby() {
       setPitchTexture(room.fieldTexture);
     }
   }, [room?.fieldTexture, pitchTexture]);
+
+  if (isDisconnected) {
+    return (
+      <>
+        <div className="bg-animated" />
+        <div className="page-center">
+          <div
+            className="glass-card animate-in text-center"
+            style={{ padding: '40px', maxWidth: '400px' }}
+          >
+            <h2 style={{ color: '#ff4a4a', marginBottom: '16px' }}>
+              {t('lobby.connection_lost') || 'Connection Lost'}
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
+              {t('lobby.connection_lost_desc') ||
+                'Your connection to the server was interrupted.'}
+            </p>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%' }}
+              onClick={() => navigate('/')}
+            >
+              {t('lobby.return_home')}
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   if (hostLeft) {
     return (

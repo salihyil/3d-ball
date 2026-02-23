@@ -50,7 +50,9 @@
     "connecting": "Connecting to room...",
     "kick_btn": "Kick",
     "kicked_title": "You Were Kicked",
-    "kicked_desc": "You have been removed from the room by the host."
+    "kicked_desc": "You have been removed from the room by the host.",
+    "connection_lost": "Connection Lost",
+    "connection_lost_desc": "Your connection to the server was interrupted. Please try rejoining."
   },
   "game": {
     "kph": "KPH",
@@ -88,5 +90,21 @@
     "player_left": "{{nickname}} left the room.",
     "player_switched": "{{nickname}} switched to {{team}} team.",
     "player_kicked": "{{nickname}} was kicked from the room by the host."
+  },
+  "profile": {
+    "title": "LOADOUT",
+    "subtitle": "Select tactical gear for the next deployment.",
+    "preview_status": "Gear Optimization // System Active",
+    "preview_platform": "X-01 AVATAR PLATFORM",
+    "preview_version": "STAGING V2.4",
+    "initialize_btn": "Initialize Loadout",
+    "ready_badge": "READY",
+    "categories": {
+      "ball_skin": "Ball Skins",
+      "hat": "Hats",
+      "aura": "Auras",
+      "decal": "Decals",
+      "trail": "Trails"
+    }
   }
 }

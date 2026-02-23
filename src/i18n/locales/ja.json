@@ -88,5 +88,21 @@
     "player_left": "{{nickname}}さんが退室しました。",
     "player_switched": "{{nickname}}さんが{{team}}チームに移動しました。",
     "player_kicked": "{{nickname}}はホストによってルームからキックされました。"
+  },
+  "profile": {
+    "title": "装備",
+    "subtitle": "次の展開に向けて戦術装備を選択してください。",
+    "preview_status": "装備最適化 // システムアクティブ",
+    "preview_platform": "X-01 アバタープラットフォーム",
+    "preview_version": "STAGING V2.4",
+    "initialize_btn": "装備を初期化",
+    "ready_badge": "準備完了",
+    "categories": {
+      "ball_skin": "ボールスキン",
+      "hat": "帽子",
+      "aura": "オーラ",
+      "decal": "デカール",
+      "trail": "トレイル"
+    }
   }
 }

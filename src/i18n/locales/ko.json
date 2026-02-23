@@ -88,5 +88,21 @@
     "player_left": "{{nickname}}님이 퇴장하셨습니다.",
     "player_switched": "{{nickname}}님이 {{team}} 팀으로 변경하셨습니다.",
     "player_kicked": "{{nickname}}님은 방장에 의해 강제 퇴장되었습니다."
+  },
+  "profile": {
+    "title": "장비",
+    "subtitle": "다음 배치를 위해 전술 장비를 선택하십시오.",
+    "preview_status": "장비 최적화 // 시스템 활성",
+    "preview_platform": "X-01 아바타 플랫폼",
+    "preview_version": "STAGING V2.4",
+    "initialize_btn": "장비 초기화",
+    "ready_badge": "준비됨",
+    "categories": {
+      "ball_skin": "볼 스킨",
+      "hat": "모자",
+      "aura": "오라",
+      "decal": "데칼",
+      "trail": "트레일"
+    }
   }
 }

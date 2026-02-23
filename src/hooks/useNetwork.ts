@@ -48,6 +48,11 @@ export function useSocketManager(
 
     const onDisconnect = (reason: string) => {
       console.warn('[SOCKET] Disconnected. Reason:', reason);
+      // Dispatch a custom event so pages can react to disconnection
+      window.dispatchEvent(
+        new CustomEvent('socket-disconnect', { detail: { reason } })
+      );
+
       if (reason === 'io server disconnect') {
         socket.connect();
       }

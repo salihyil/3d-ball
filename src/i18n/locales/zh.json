@@ -88,5 +88,21 @@
     "player_left": "{{nickname}} 离开了房间。",
     "player_switched": "{{nickname}} 切换到了 {{team}} 队。",
     "player_kicked": "{{nickname}} 被房主踢出了房间。"
+  },
+  "profile": {
+    "title": "装备",
+    "subtitle": "为下一次部署选择战术装备。",
+    "preview_status": "装备优化 // 系统活跃",
+    "preview_platform": "X-01 虚拟形象平台",
+    "preview_version": "STAGING V2.4",
+    "initialize_btn": "初始化装备",
+    "ready_badge": "就绪",
+    "categories": {
+      "ball_skin": "球皮肤",
+      "hat": "帽子",
+      "aura": "光环",
+      "decal": "贴花",
+      "trail": "拖尾"
+    }
   }
 }

@@ -50,7 +50,9 @@
     "connecting": "Odaya bağlanılıyor...",
     "kick_btn": "At",
     "kicked_title": "Odadan Çıkarıldınız",
-    "kicked_desc": "Oyun kurucusu tarafından odadan çıkarıldınız."
+    "kicked_desc": "Oyun kurucusu tarafından odadan çıkarıldınız.",
+    "connection_lost": "Bağlantı Kesildi",
+    "connection_lost_desc": "Sunucu ile olan bağlantınız koptu. Lütfen tekrar bağlanmayı deneyin."
   },
   "game": {
     "kph": "KM/H",
@@ -88,5 +90,21 @@
     "player_left": "{{nickname}} odadan ayrıldı.",
     "player_switched": "{{nickname}} {{team}} takımına geçti.",
     "player_kicked": "{{nickname}} host tarafından odadan çıkarıldı."
+  },
+  "profile": {
+    "title": "TEÇHİZAT",
+    "subtitle": "Bir sonraki görev için taktiksel teçhizat seçin.",
+    "preview_status": "Teçhizat Optimizasyonu // Sistem Aktif",
+    "preview_platform": "X-01 AVATAR PLATFORMU",
+    "preview_version": "STAGING V2.4",
+    "initialize_btn": "Teçhizatı Hazırla",
+    "ready_badge": "HAZIR",
+    "categories": {
+      "ball_skin": "Top Görünümleri",
+      "hat": "Şapkalar",
+      "aura": "Auralar",
+      "decal": "Çıkartmalar",
+      "trail": "İzler"
+    }
   }
 }

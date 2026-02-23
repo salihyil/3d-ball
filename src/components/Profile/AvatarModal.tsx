@@ -1,6 +1,7 @@
 import { OrbitControls, Stage } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { memo, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { socket } from '../../hooks/useNetwork';
 import { usePlayerProfile } from '../../hooks/usePlayerProfile';
 import { supabase } from '../../lib/supabase';
@@ -26,6 +27,7 @@ export const AvatarModal = memo(function AvatarModal({
   isOpen,
   onClose,
 }: AvatarModalProps) {
+  const { t } = useTranslation();
   const { accessories, loading, toggleAccessory } = usePlayerProfile();
 
   if (!isOpen) return null;
@@ -121,7 +123,7 @@ export const AvatarModal = memo(function AvatarModal({
           >
             <div className="preview-scanline"></div>
             <div className="preview-overlay-text">
-              Gear Optimization // System Active
+              {t('profile.preview_status')}
             </div>
 
             <CanvasErrorBoundary>
@@ -173,8 +175,8 @@ export const AvatarModal = memo(function AvatarModal({
                 pointerEvents: 'none',
               }}
             >
-              <div>X-01 AVATAR PLATFORM</div>
-              <div>STAGING V2.4</div>
+              <div>{t('profile.preview_platform')}</div>
+              <div>{t('profile.preview_version')}</div>
             </div>
           </div>
 
@@ -209,11 +211,11 @@ export const AvatarModal = memo(function AvatarModal({
                   className="modal-title"
                   style={{ fontSize: '24px', margin: 0 }}
                 >
-                  LOADOUT
+                  {t('profile.title')}
                 </h2>
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                Select tactical gear for the next deployment.
+                {t('profile.subtitle')}
               </p>
             </div>
 
@@ -259,7 +261,7 @@ export const AvatarModal = memo(function AvatarModal({
                   return (
                     <div key={cat}>
                       <div className="avatar-modal-gear-title">
-                        {cat.replace('_', ' ')}s
+                        {t(`profile.categories.${cat}`)}
                       </div>
                       <div
                         style={{
@@ -350,7 +352,7 @@ export const AvatarModal = memo(function AvatarModal({
                               ) : (
                                 acc.is_equipped && (
                                   <div className="equipped-badge-glow">
-                                    READY
+                                    {t('profile.ready_badge')}
                                   </div>
                                 )
                               )}
@@ -369,7 +371,7 @@ export const AvatarModal = memo(function AvatarModal({
               className="btn btn-primary btn-battle-ready"
               style={{ width: '100%' }}
             >
-              Initialize Loadout
+              {t('profile.initialize_btn')}
             </button>
           </div>
         </div>

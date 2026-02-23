@@ -127,7 +127,7 @@ export default function Home() {
               }}
               onClick={() => setIsAvatarModalOpen(true)}
             >
-              {t('home.customize_btn', 'Karakteri Özelleştir')}
+              {t('profile.title')}
             </button>
             <button
               className="btn btn-outline"

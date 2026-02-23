@@ -51,6 +51,7 @@ export default function Game() {
   const [speed, setSpeed] = useState(0);
   const [ping, setPing] = useState(0);
   const [hostLeft, setHostLeft] = useState(false);
+  const [isDisconnected, setIsDisconnected] = useState(false);
   const { isSoundEnabled, toggleSound } = useSoundSettings();
 
   const myTeam = useRef<Team>('blue');
@@ -74,6 +75,7 @@ export default function Game() {
             );
             if (me) myTeam.current = me.team as Team;
             setRoom(res.room as RoomInfo);
+            setIsDisconnected(false); // Hide overlay ONLY on success
             if (res.room.gameState !== 'lobby') socket.emit('enter-match');
           }
         }
@@ -121,6 +123,11 @@ export default function Game() {
     };
     const handleRoomDestroyed = () => setHostLeft(true);
     const handleRoomUpdate = (updatedRoom: RoomInfo) => setRoom(updatedRoom);
+    const handleSocketDisconnect = () => setIsDisconnected(true);
+    const handleSocketConnect = () => {
+      // setIsDisconnected(false); // REMOVED: Wait for rejoinRoom ACK
+      rejoinRoom();
+    };
 
     socket.on('game-snapshot', handleSnapshot);
     socket.on('goal-scored', handleGoalScored);
@@ -128,6 +135,8 @@ export default function Game() {
     socket.on('game-start', handleGameStart);
     socket.on('room-destroyed', handleRoomDestroyed);
     socket.on('room-update', handleRoomUpdate);
+    window.addEventListener('socket-disconnect', handleSocketDisconnect);
+    socket.on('connect', handleSocketConnect);
 
     sendIntervalRef.current = window.setInterval(() => {
       const input = getInput();
@@ -145,6 +154,8 @@ export default function Game() {
       socket.off('game-start', handleGameStart);
       socket.off('room-destroyed', handleRoomDestroyed);
       socket.off('room-update', handleRoomUpdate);
+      window.removeEventListener('socket-disconnect', handleSocketDisconnect);
+      socket.off('connect', handleSocketConnect);
       if (sendIntervalRef.current) clearInterval(sendIntervalRef.current);
       clearInterval(pingInterval);
     };
@@ -229,6 +240,31 @@ export default function Game() {
             </div>
             <div className="host-left-desc">
               {t('game.host_disconnected_desc')}
+            </div>
+            <div
+              className="gameover-actions"
+              style={{ justifyContent: 'center' }}
+            >
+              <button className="btn btn-primary" onClick={() => navigate('/')}>
+                {t('lobby.return_home')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDisconnected && (
+        <div className="gameover-overlay" style={{ zIndex: 1100 }}>
+          <div className="gameover-card glass-card">
+            <div
+              className="gameover-title"
+              style={{ color: '#ff4a4a', fontSize: '2rem' }}
+            >
+              {t('lobby.connection_lost') || 'Connection Lost'}
+            </div>
+            <div className="host-left-desc">
+              {t('lobby.connection_lost_desc') ||
+                'Your connection to the server was interrupted.'}
             </div>
             <div
               className="gameover-actions"

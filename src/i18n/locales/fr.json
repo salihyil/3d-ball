@@ -88,5 +88,21 @@
     "player_left": "{{nickname}} a quitté la salle.",
     "player_switched": "{{nickname}} est passé dans l'équipe {{team}}.",
     "player_kicked": "{{nickname}} a été exclu de la salle par l'hôte."
+  },
+  "profile": {
+    "title": "ÉQUIPEMENT",
+    "subtitle": "Sélectionnez l'équipement tactique pour le prochain déploiement.",
+    "preview_status": "Optimisation de l'équipement // Système actif",
+    "preview_platform": "PLATEFORME D'AVATAR X-01",
+    "preview_version": "STAGING V2.4",
+    "initialize_btn": "Initialiser l'équipement",
+    "ready_badge": "PRÊT",
+    "categories": {
+      "ball_skin": "Skins de ballon",
+      "hat": "Chapeaux",
+      "aura": "Auras",
+      "decal": "Décalcomanies",
+      "trail": "Traînées"
+    }
   }
 }

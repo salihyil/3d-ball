@@ -88,5 +88,21 @@
     "player_left": "{{nickname}} hat den Raum verlassen.",
     "player_switched": "{{nickname}} ist zum {{team}} Team gewechselt.",
     "player_kicked": "{{nickname}} wurde vom Host aus dem Raum geworfen."
+  },
+  "profile": {
+    "title": "AUSRÜSTUNG",
+    "subtitle": "Wähle taktische Ausrüstung für den nächsten Einsatz.",
+    "preview_status": "Ausrüstungsoptimierung // System aktiv",
+    "preview_platform": "X-01 AVATAR PLATFORM",
+    "preview_version": "STAGING V2.4",
+    "initialize_btn": "Ausrüstung initialisieren",
+    "ready_badge": "BEREIT",
+    "categories": {
+      "ball_skin": "Ball-Skins",
+      "hat": "Hüte",
+      "aura": "Auren",
+      "decal": "Aufkleber",
+      "trail": "Spuren"
+    }
   }
 }
