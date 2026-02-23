@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AuthModal from '../components/Auth/AuthModal';
 import LanguageSelector from '../components/LanguageSelector';
 import { AvatarModal } from '../components/Profile/AvatarModal';
@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase';
 export default function Home() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const [nickname, setNickname] = useState('');
   const [roomCode, setRoomCode] = useState('');
@@ -19,13 +20,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const processedSessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(globalThis.location.search);
+    const params = new URLSearchParams(location.search);
     const purchase = params.get('purchase');
     const sessionId = params.get('session_id');
 
     if (purchase !== 'success' || !sessionId) return;
+    if (processedSessionIdRef.current === sessionId) return;
 
     let isCancelled = false;
 
@@ -52,6 +55,8 @@ export default function Home() {
           throw new Error(payload?.error || 'Purchase confirmation failed');
         }
 
+        processedSessionIdRef.current = sessionId;
+
         if (isCancelled) return;
 
         alert(t('profile.purchase_success', 'Purchase confirmed!'));
@@ -76,7 +81,7 @@ export default function Home() {
     return () => {
       isCancelled = true;
     };
-  }, [t]);
+  }, [t, location.search]);
 
   useEffect(() => {
     if (user?.email) {

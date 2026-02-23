@@ -81,7 +81,7 @@ export function useSocketManager(
       // Guest Mode
       socket.auth = {
         token: null,
-        nickname: sessionStorage.getItem('bb-nickname') || undefined,
+        nickname: globalThis.sessionStorage.getItem('bb-nickname') || undefined,
         equippedAccessories: [],
       };
     }
@@ -97,20 +97,10 @@ export function useSocketManager(
       socket.disconnect().connect();
     }
 
-    socket.on('item-unlocked', (data: { id: string }) => {
-      console.log(`[SOCKET] Item unlocked: ${data.id}`);
-      // Refresh profile to show new item
-      // Note: We use the fetchProfileData from usePlayerProfile if possible,
-      // but here we just log it. The AvatarModal will re-render when accessories change.
-      // In a real app, you might want a global event or toast here.
-      alert('Congratulations! New item unlocked!');
-    });
-
     return () => {
       socket.off('connect_error', onConnectError);
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
-      socket.off('item-unlocked');
     };
   }, [session, profile, accessories]);
 }

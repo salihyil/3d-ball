@@ -217,6 +217,7 @@ app.post('/api/confirm-checkout-session', async (req, res) => {
       .maybeSingle();
 
     if (existingError) throw existingError;
+    let createdNew = false;
 
     if (!existing) {
       const { error: insertError } = await supabaseAdmin
@@ -227,14 +228,17 @@ app.post('/api/confirm-checkout-session', async (req, res) => {
           is_equipped: false,
         });
 
+      createdNew = true;
       if (insertError) throw insertError;
     }
 
-    // Notify player via Socket if connected
-    for (const [id, socket] of io.sockets.sockets) {
-      if (socket.user?.id === userId) {
-        socket.emit('item-unlocked', { id: accessoryId });
-        console.log(`[STRIPE] Notified socket ${id} of unlock (confirm)`);
+    if (createdNew) {
+      // Notify player via Socket if connected (only on first unlock)
+      for (const [id, socket] of io.sockets.sockets) {
+        if (socket.user?.id === userId) {
+          socket.emit('item-unlocked', { id: accessoryId });
+          console.log(`[STRIPE] Notified socket ${id} of unlock (confirm)`);
+        }
       }
     }
 

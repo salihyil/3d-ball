@@ -98,6 +98,8 @@ export function usePlayerProfile() {
     if (!user) return;
 
     const handleItemUnlocked = () => {
+      // TODO: consider showing a toast/notification instead of alert for better UX
+      alert('Congratulations! New item unlocked!');
       fetchProfileData();
     };
 
