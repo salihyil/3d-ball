@@ -29,7 +29,10 @@ test.describe('Host Disconnection', () => {
     // 3. Host leaves
     await hostPage.close();
 
-    // 4. Joiner should become host via migration
+    // 4. Wait for the test-mode grace period (2s) to expire
+    await joinerPage.waitForTimeout(3000);
+
+    // 5. Joiner should become host via migration
     // The server assigns host to the next available player
     await expect(joinerLobby.hostBadge).toBeVisible();
     await expect(joinerLobby.startBtn).toBeEnabled();

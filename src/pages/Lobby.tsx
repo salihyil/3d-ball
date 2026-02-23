@@ -40,6 +40,7 @@ export default function Lobby() {
   const [pitchTexture, setPitchTexture] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dummyLatestRef = useRef<GameSnapshot | null>(null);
+  const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const joinRoom = () => {
@@ -75,9 +76,21 @@ export default function Lobby() {
     };
     const handleRoomDestroyed = () => setHostLeft(true);
     const handleKicked = () => setIsKicked(true);
-    const handleSocketDisconnect = () => setIsDisconnected(true);
+
+    const handleSocketDisconnect = () => {
+      // Delay disconnection UI to allow for auto-reconnect or refresh
+      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = setTimeout(() => {
+        setIsDisconnected(true);
+      }, 2000);
+    };
+
     const handleSocketConnect = () => {
-      // setIsDisconnected(false); // REMOVED: Wait for joinRoom ACK
+      if (disconnectTimerRef.current) {
+        clearTimeout(disconnectTimerRef.current);
+        disconnectTimerRef.current = null;
+      }
+      setIsDisconnected(false);
       joinRoom(); // RE-JOIN ON RECONNECT
     };
 
@@ -95,6 +108,7 @@ export default function Lobby() {
       socket.off('kicked', handleKicked);
       window.removeEventListener('socket-disconnect', handleSocketDisconnect);
       socket.off('connect', handleSocketConnect);
+      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
     };
   }, [roomId, navigate]);
 
@@ -124,7 +138,12 @@ export default function Lobby() {
     []
   );
 
-  const isHost = useMemo(() => room?.hostId === socket.id, [room?.hostId]);
+  const isHost = useMemo(() => {
+    const self = room?.players.find(
+      (p) => p.id === socket.id || p.sessionId === socket.user?.sessionId
+    );
+    return !!self?.isHost;
+  }, [room?.players, socket.id, socket.user?.sessionId]);
 
   const handleTextureSelect = useCallback(
     (url: string) => {

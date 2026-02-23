@@ -53,6 +53,7 @@ export default function Game() {
   const [hostLeft, setHostLeft] = useState(false);
   const [isDisconnected, setIsDisconnected] = useState(false);
   const { isSoundEnabled, toggleSound } = useSoundSettings();
+  const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const myTeam = useRef<Team>('blue');
 
@@ -123,9 +124,20 @@ export default function Game() {
     };
     const handleRoomDestroyed = () => setHostLeft(true);
     const handleRoomUpdate = (updatedRoom: RoomInfo) => setRoom(updatedRoom);
-    const handleSocketDisconnect = () => setIsDisconnected(true);
+    const handleSocketDisconnect = () => {
+      // Delay disconnection UI to allow for auto-reconnect or refresh
+      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = setTimeout(() => {
+        setIsDisconnected(true);
+      }, 2000);
+    };
+
     const handleSocketConnect = () => {
-      // setIsDisconnected(false); // REMOVED: Wait for rejoinRoom ACK
+      if (disconnectTimerRef.current) {
+        clearTimeout(disconnectTimerRef.current);
+        disconnectTimerRef.current = null;
+      }
+      setIsDisconnected(false);
       rejoinRoom();
     };
 
@@ -157,6 +169,7 @@ export default function Game() {
       window.removeEventListener('socket-disconnect', handleSocketDisconnect);
       socket.off('connect', handleSocketConnect);
       if (sendIntervalRef.current) clearInterval(sendIntervalRef.current);
+      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
       clearInterval(pingInterval);
     };
   }, [roomId, push, getInput, isSoundEnabled, navigate, pingRef]);

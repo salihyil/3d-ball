@@ -14,7 +14,8 @@ export class Room {
     this.matchDuration = Math.min(Math.max(matchDuration, 1), 15) * 60; // clamp 1-15 min → seconds
     this.io = io;
     this.enableFeatures = enableFeatures;
-    this.players = new Map(); // socketId → { nickname, team, isHost }
+    this.players = new Map(); // socketId → { id, nickname, team, isHost, sessionId, disconnectedAt }
+    this.disconnectedPlayers = new Map(); // sessionId → { player, timeout }
     this.gameState = 'lobby';
     this.score = { blue: 0, red: 0 };
     this.timeRemaining = this.matchDuration;
@@ -34,7 +35,13 @@ export class Room {
     return timer;
   }
 
-  addPlayer(socket, nickname, isHost, equippedAccessories = []) {
+  addPlayer(
+    socket,
+    nickname,
+    isHost,
+    equippedAccessories = [],
+    sessionId = null
+  ) {
     const team = this._getSmallestTeam();
 
     // Safety: ensure only one host exists if isHost is requested
@@ -49,6 +56,7 @@ export class Room {
     const player = {
       id: socket.user.id, // Databases ID
       socketId: socket.id, // Socket Connection ID
+      sessionId, // Session ID for reconnection
       nickname,
       team,
       isHost: assignedHostStatus,
@@ -63,18 +71,111 @@ export class Room {
     this.lastActivity = Date.now();
   }
 
-  removePlayer(socketId) {
+  removePlayer(socketId, isGraceful = false) {
     const player = this.players.get(socketId);
     if (!player) return;
 
+    if (!isGraceful && player.sessionId) {
+      const gracePeriod = process.env.NODE_ENV === 'test' ? 2000 : 15000;
+
+      console.log(
+        `[ROOM] ${this.roomId} Player "${
+          player.nickname
+        }" disconnected. Starting ${gracePeriod / 1000}s grace period.`
+      );
+
+      const timeout = this._setTimeout(() => {
+        console.log(
+          `[ROOM] ${this.roomId} Grace period expired for "${player.nickname}". Removing player.`
+        );
+        this._finalRemovePlayer(socketId);
+      }, gracePeriod);
+
+      this.disconnectedPlayers.set(player.sessionId, {
+        player,
+        timeout,
+      });
+      return;
+    }
+
+    this._finalRemovePlayer(socketId);
+  }
+
+  _finalRemovePlayer(socketId) {
+    const player = this.players.get(socketId);
+    if (!player) return;
+
+    const wasHost = player.isHost;
+
     this.players.delete(socketId);
+    if (player.sessionId) {
+      this.disconnectedPlayers.delete(player.sessionId);
+    }
 
     // Remove from game loop
     if (this.gameLoop) {
       this.gameLoop.removePlayer(socketId);
     }
 
+    // If the host is gone for good, migrate!
+    if (wasHost) {
+      this.migrateHost();
+    }
+
     this.lastActivity = Date.now();
+  }
+
+  reconnectPlayer(sessionId, newSocket) {
+    // 1. Check disconnected pool (grace period)
+    const disconnected = this.disconnectedPlayers.get(sessionId);
+    if (disconnected) {
+      const { player, timeout } = disconnected;
+      console.log(
+        `[ROOM] ${this.roomId} Player "${player.nickname}" reconnected within grace period (Session: ${sessionId})`
+      );
+
+      // Cancel removal timer
+      clearTimeout(timeout);
+      this.timers.delete(timeout);
+      this.disconnectedPlayers.delete(sessionId);
+
+      // Swap socket IDs
+      this._performSocketSwap(player, newSocket);
+
+      this.lastActivity = Date.now();
+      return true;
+    }
+
+    // 2. Check active players pool (fast refresh / competing tab)
+    const activePlayer = this.getPlayerBySessionId(sessionId);
+    if (activePlayer && activePlayer.socketId !== newSocket.id) {
+      console.log(
+        `[ROOM] ${this.roomId} Player "${activePlayer.nickname}" stealing session ${sessionId} (Active Swap)`
+      );
+
+      // Swap socket IDs
+      this._performSocketSwap(activePlayer, newSocket);
+
+      this.lastActivity = Date.now();
+      return true;
+    }
+
+    return false;
+  }
+
+  _performSocketSwap(player, newSocket) {
+    const oldSocketId = player.socketId;
+    this.players.delete(oldSocketId);
+
+    player.socketId = newSocket.id;
+    player.socket = newSocket;
+    this.players.set(newSocket.id, player);
+
+    // Update game loop if active
+    if (this.gameLoop && this.gameLoop.players[oldSocketId]) {
+      this.gameLoop.players[newSocket.id] = this.gameLoop.players[oldSocketId];
+      delete this.gameLoop.players[oldSocketId];
+    }
   }
 
   enterMatch(socketId) {
@@ -228,9 +329,18 @@ export class Room {
     return this.players.has(socketId);
   }
 
+  getPlayerBySessionId(sessionId) {
+    if (!sessionId) return null;
+    for (const p of this.players.values()) {
+      if (p.sessionId === sessionId) return p;
+    }
+    return null;
+  }
+
   getRoomInfo() {
     const players = [];
     for (const [socketId, p] of this.players) {
+      const isDisconnected = this.disconnectedPlayers.has(p.sessionId);
       players.push({
         id: socketId, // Keep for backward compatibility with UI
         userId: p.id,
@@ -238,6 +348,7 @@ export class Room {
         team: p.team,
         isHost: p.isHost,
         equippedAccessories: p.equippedAccessories,
+        isDisconnected,
       });
     }
     return {
@@ -279,7 +390,20 @@ export class Room {
   }
 
   isEmpty() {
-    return this.players.size === 0;
+    // A room is truly empty only if there are NO players (even disconnected ones)
+    // BUT for cleanup purposes, if everyone is disconnected, the room should eventually die.
+    // If the only players are in grace period, room.players.size is > 0.
+    // We want rooms to stay alive during grace period.
+    return this.players.size === 0 && this.disconnectedPlayers.size === 0;
+  }
+
+  isFullyDisconnected() {
+    // Are all players currently in grace period?
+    if (this.players.size === 0) return true;
+    for (const [socketId, p] of this.players) {
+      if (!this.disconnectedPlayers.has(p.sessionId)) return false;
+    }
+    return true;
   }
 
   destroy() {
@@ -311,16 +435,28 @@ export class Room {
   migrateHost() {
     console.log(`[ROOM] ${this.roomId} Host migration triggered.`);
 
-    // Assign new host: the oldest player in the Map
-    if (this.players.size > 0) {
-      const firstPlayerId = this.players.keys().next().value;
-      const newHost = this.players.get(firstPlayerId);
-      if (newHost) {
-        newHost.isHost = true;
+    // First, find the current host and remove their status
+    for (const p of this.players.values()) {
+      if (p.isHost) p.isHost = false;
+    }
+
+    // Assign new host: the oldest player in the Map who is NOT disconnected
+    let foundNewHost = false;
+    for (const [socketId, p] of this.players) {
+      if (!this.disconnectedPlayers.has(p.sessionId)) {
+        p.isHost = true;
         console.log(
-          `[ROOM] ${this.roomId} Host migrated to "${newHost.nickname}" (${firstPlayerId})`
+          `[ROOM] ${this.roomId} Host migrated to "${p.nickname}" (${socketId})`
         );
+        foundNewHost = true;
+        break;
       }
+    }
+
+    if (!foundNewHost) {
+      console.log(
+        `[ROOM] ${this.roomId} No active players to migrate host to.`
+      );
     }
 
     this.io.to(this.roomId).emit('room-update', this.getRoomInfo());

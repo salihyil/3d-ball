@@ -263,10 +263,13 @@ if (process.env.NODE_ENV === 'production') {
 
 const rooms = new Map();
 
-// Clean up empty rooms every 30s
+// Clean up empty rooms or rooms where everyone has been disconnected for > 60s
 setInterval(() => {
   for (const [id, room] of rooms) {
-    if (room.isEmpty() && Date.now() - room.lastActivity > 60000) {
+    const isInactive =
+      room.isEmpty() ||
+      (room.isFullyDisconnected() && Date.now() - room.lastActivity > 60000);
+    if (isInactive) {
       room.destroy();
       rooms.delete(id);
       console.log(`[CLEANUP] Room ${id} deleted (inactive)`);
@@ -282,6 +285,7 @@ io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   const nickname = socket.handshake.auth?.nickname;
   const equippedAccessories = socket.handshake.auth?.equippedAccessories || [];
+  const sessionId = socket.handshake.auth?.sessionId;
 
   // Fallback for Guest mode if no token provided
   if (!token) {
@@ -293,6 +297,7 @@ io.use((socket, next) => {
       nickname: finalNickname,
       equippedAccessories: [], // Guests cannot have accessories for now
       isGuest: true,
+      sessionId: sessionId || uuidv4(),
     };
     return next();
   }
@@ -309,6 +314,7 @@ io.use((socket, next) => {
         nickname: nickname || 'Guest',
         equippedAccessories: [],
         isGuest: true,
+        sessionId: sessionId || uuidv4(),
       };
       return next();
     }
@@ -323,6 +329,7 @@ io.use((socket, next) => {
       nickname: verifiedNickname,
       equippedAccessories,
       isGuest: false,
+      sessionId,
     };
     next();
   } catch (err) {
@@ -334,6 +341,7 @@ io.use((socket, next) => {
       nickname: (nickname || 'Guest') + ' (Exp)',
       equippedAccessories: [],
       isGuest: true,
+      sessionId: sessionId || uuidv4(),
     };
     next();
   }
@@ -341,15 +349,28 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   console.log(
-    `[CONNECT] ${socket.user.nickname} (${socket.user.id}) connected via ${socket.id}`
+    `[CONNECT] ${socket.user.nickname} (${socket.user.id}) connected via ${socket.id} (Session: ${socket.user.sessionId})`
   );
 
-  // Ping check for client latency measurement
-  socket.on('ping-check', (cb) => {
-    if (typeof cb === 'function') cb();
-  });
-
   let currentRoomId = null;
+
+  // ---- Session Recovery Check ----
+  if (socket.user.sessionId) {
+    for (const [id, room] of rooms) {
+      if (room.reconnectPlayer(socket.user.sessionId, socket)) {
+        currentRoomId = id;
+        socket.join(id);
+        console.log(
+          `[RECONNECT] ${socket.user.nickname} recovered session in room ${id}`
+        );
+        // Inform fellow players
+        socket.to(id).emit('room-update', room.getRoomInfo());
+        // Inform the reconnected player
+        socket.emit('reconnected', { room: room.getRoomInfo() });
+        break;
+      }
+    }
+  }
   let inputCount = 0;
   let inputResetTime = Date.now();
 
@@ -404,7 +425,8 @@ io.on('connection', (socket) => {
       socket,
       nickname.trim(),
       true,
-      socket.user.equippedAccessories
+      socket.user.equippedAccessories,
+      socket.user.sessionId
     );
     currentRoomId = roomId;
     socket.join(roomId);
@@ -452,7 +474,8 @@ io.on('connection', (socket) => {
       socket,
       nickname.trim(),
       returningHost,
-      socket.user.equippedAccessories
+      socket.user.equippedAccessories,
+      socket.user.sessionId
     );
     currentRoomId = roomId;
     socket.join(roomId);
@@ -582,6 +605,11 @@ io.on('connection', (socket) => {
   });
 
   // ---- Chat ----
+  socket.on('ping-check', (cb) => {
+    if (typeof cb === 'function') cb();
+  });
+
+  // ---- Chat ----
   socket.on('send-chat-message', (data) => {
     if (!currentRoomId) return;
     const { text } = data;
@@ -603,7 +631,8 @@ io.on('connection', (socket) => {
     const nickname = room.getPlayerNickname(socket.id);
     const isHost = room.isHost(socket.id);
 
-    room.removePlayer(socket.id);
+    // When explicitly leaving, we don't use grace period
+    room.removePlayer(socket.id, true);
     socket.leave(currentRoomId);
 
     if (room.isEmpty()) {
@@ -611,13 +640,7 @@ io.on('connection', (socket) => {
       rooms.delete(currentRoomId);
       console.log(`[ROOM] ${currentRoomId} deleted (empty)`);
       io.to(currentRoomId).emit('room-destroyed');
-    } else if (isHost) {
-      console.log(
-        `[ROOM] Host left ${currentRoomId}. Migrating host immediately...`
-      );
-      room.migrateHost();
     } else {
-      io.to(currentRoomId).emit('room-update', room.getRoomInfo());
       socket.to(currentRoomId).emit('player-left', { nickname });
       sendChatMessage(
         `${nickname} odadan ayrıldı.`,
@@ -626,6 +649,7 @@ io.on('connection', (socket) => {
         'chat.player_left',
         { nickname }
       );
+      io.to(currentRoomId).emit('room-update', room.getRoomInfo());
     }
 
     currentRoomId = null;
@@ -654,8 +678,8 @@ io.on('connection', (socket) => {
     // Notify the target player they were kicked
     io.to(targetId).emit('kicked', { reason: 'kicked_by_host' });
 
-    // Remove the player from the room
-    room.removePlayer(targetId);
+    // Remove the player from the room (immediate, no grace period)
+    room.removePlayer(targetId, true);
 
     // Broadcast update to remaining players
     io.to(currentRoomId).emit('room-update', room.getRoomInfo());
@@ -692,8 +716,14 @@ io.on('connection', (socket) => {
 
   socket.on('leave-room', leaveRoom);
   socket.on('disconnect', () => {
-    console.log(`[DISCONNECT] ${socket.id}`);
-    leaveRoom();
+    console.log(`[DISCONNECT] ${socket.id} (${socket.user.nickname})`);
+    if (currentRoomId) {
+      const room = rooms.get(currentRoomId);
+      if (room) {
+        room.removePlayer(socket.id, false); // Use grace period
+        io.to(currentRoomId).emit('room-update', room.getRoomInfo());
+      }
+    }
   });
 });
 

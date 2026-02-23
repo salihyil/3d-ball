@@ -22,6 +22,8 @@ export interface PlayerInfo {
   team: Team;
   isHost: boolean;
   equippedAccessories?: string[];
+  sessionId?: string;
+  isDisconnected?: boolean;
 }
 
 export type PowerUpType = 'magnet' | 'freeze' | 'rocket' | 'frozen';
