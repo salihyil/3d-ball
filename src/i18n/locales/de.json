@@ -102,7 +102,9 @@
       "hat": "Hüte",
       "aura": "Auren",
       "decal": "Aufkleber",
-      "trail": "Spuren"
+      "trail": "Spuren",
+      "goal_explosion": "Goal Explosions",
+      "player_title": "Player Titles"
     }
   }
 }

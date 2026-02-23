@@ -103,10 +103,18 @@ export function usePlayerProfile() {
       fetchProfileData();
     };
 
+    const handleCoinBalanceUpdated = (data: { balance: number }) => {
+      setProfile((prev) =>
+        prev ? { ...prev, brawl_coins: data.balance } : null
+      );
+    };
+
     socket.on('item-unlocked', handleItemUnlocked);
+    socket.on('coin-balance-updated', handleCoinBalanceUpdated);
 
     return () => {
       socket.off('item-unlocked', handleItemUnlocked);
+      socket.off('coin-balance-updated', handleCoinBalanceUpdated);
     };
   }, [user, fetchProfileData]);
 
@@ -184,6 +192,35 @@ export function usePlayerProfile() {
     }
   };
 
+  const buyWithCoins = useCallback(
+    (
+      accessoryId: string
+    ): Promise<{ ok: boolean; error?: string; newBalance?: number }> => {
+      return new Promise((resolve) => {
+        if (!user) {
+          return resolve({ ok: false, error: 'not_logged_in' });
+        }
+
+        socket.emit(
+          'buy-item-with-coins',
+          { accessoryId },
+          (res: { ok: boolean; error?: string; newBalance?: number }) => {
+            if (res.ok && res.newBalance !== undefined) {
+              // Update local coin balance
+              setProfile((prev) =>
+                prev ? { ...prev, brawl_coins: res.newBalance! } : null
+              );
+              // Refresh accessories to include the new item
+              fetchProfileData();
+            }
+            resolve(res);
+          }
+        );
+      });
+    },
+    [user, fetchProfileData]
+  );
+
   return {
     profile,
     accessories,
@@ -191,6 +228,7 @@ export function usePlayerProfile() {
     error,
     updateNickname,
     toggleAccessory,
+    buyWithCoins,
     refreshProfile: fetchProfileData,
   };
 }

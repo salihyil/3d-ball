@@ -93,30 +93,81 @@ app.post(
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
-      const { userId, accessoryId } = session.metadata;
-
-      console.log(
-        `[STRIPE] Payment success for user ${userId}, item ${accessoryId}`
-      );
+      const { userId, type } = session.metadata;
 
       try {
-        // 1. Grant accessory in Supabase
-        const { error: accError } = await supabaseAdmin
-          .from('user_accessories')
-          .insert({
-            user_id: userId,
-            accessory_id: accessoryId,
-            is_equipped: false,
-          });
+        if (type === 'coin_pack') {
+          // --- Coin Pack Purchase ---
+          const coinAmount = parseInt(session.metadata.coinAmount, 10);
+          console.log(
+            `[STRIPE] Coin pack payment success for user ${userId}, +${coinAmount} coins`
+          );
 
-        if (accError) throw accError;
+          const { error: coinError } = await supabaseAdmin
+            .rpc('increment_brawl_coins', {
+              p_user_id: userId,
+              p_amount: coinAmount,
+            })
+            .maybeSingle();
 
-        // 2. Notify player via Socket if connected
-        // Scan all connected sockets for this userId
-        for (const [id, socket] of io.sockets.sockets) {
-          if (socket.user?.id === userId) {
-            socket.emit('item-unlocked', { id: accessoryId });
-            console.log(`[STRIPE] Notified socket ${id} of unlock`);
+          // Fallback: direct update if RPC doesn't exist
+          if (coinError) {
+            const { data: currentProfile } = await supabaseAdmin
+              .from('profiles')
+              .select('brawl_coins')
+              .eq('id', userId)
+              .single();
+
+            if (currentProfile) {
+              await supabaseAdmin
+                .from('profiles')
+                .update({
+                  brawl_coins: currentProfile.brawl_coins + coinAmount,
+                })
+                .eq('id', userId);
+            }
+          }
+
+          // Notify player via Socket if connected
+          for (const [id, s] of io.sockets.sockets) {
+            if (s.user?.id === userId) {
+              // Fetch updated balance
+              const { data: updatedProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('brawl_coins')
+                .eq('id', userId)
+                .single();
+
+              s.emit('coin-balance-updated', {
+                balance: updatedProfile?.brawl_coins ?? 0,
+              });
+              console.log(
+                `[STRIPE] Notified socket ${id} of coin balance update`
+              );
+            }
+          }
+        } else {
+          // --- Legacy Accessory Purchase ---
+          const { accessoryId } = session.metadata;
+          console.log(
+            `[STRIPE] Payment success for user ${userId}, item ${accessoryId}`
+          );
+
+          const { error: accError } = await supabaseAdmin
+            .from('user_accessories')
+            .insert({
+              user_id: userId,
+              accessory_id: accessoryId,
+              is_equipped: false,
+            });
+
+          if (accError) throw accError;
+
+          for (const [id, s] of io.sockets.sockets) {
+            if (s.user?.id === userId) {
+              s.emit('item-unlocked', { id: accessoryId });
+              console.log(`[STRIPE] Notified socket ${id} of unlock`);
+            }
           }
         }
       } catch (err) {
@@ -132,17 +183,51 @@ app.post(
 // Regular JSON parser for other routes
 app.use(express.json());
 
-// Stripe: Create Checkout Session
+// Stripe: Create Checkout Session (supports both coin_pack and accessory)
 app.post('/api/create-checkout-session', async (req, res) => {
-  const { accessToken, accessoryId, priceId } = req.body;
+  const { accessToken, type, coinPackId, accessoryId, priceId } = req.body;
 
   try {
     // 1. Verify User
     const decoded = verifySupabaseToken(accessToken);
     const userId = decoded.sub;
 
-    // 2. Create Session
-    const finalPriceId = priceId || process.env.STRIPE_TEST_PRICE_ID;
+    // 2. Determine price and metadata based on type
+    let finalPriceId;
+    let metadata;
+
+    if (type === 'coin_pack') {
+      // Coin Pack definitions
+      const COIN_PACKS = {
+        starter: {
+          priceId: 'price_1T43WzFAhwt6dCXVAWu91H2F',
+          coinAmount: 500,
+          label: 'Starter Pack',
+        },
+        value: {
+          priceId: 'price_1T43WzFAhwt6dCXVkHsYHB2m',
+          coinAmount: 1200,
+          label: 'Value Pack',
+        },
+      };
+
+      const pack = COIN_PACKS[coinPackId];
+      if (!pack) {
+        return res.status(400).json({ error: 'Invalid coin pack ID' });
+      }
+
+      finalPriceId = pack.priceId;
+      metadata = {
+        userId,
+        type: 'coin_pack',
+        coinAmount: String(pack.coinAmount),
+        packId: coinPackId,
+      };
+    } else {
+      // Legacy accessory purchase
+      finalPriceId = priceId || process.env.STRIPE_TEST_PRICE_ID;
+      metadata = { userId, type: 'accessory', accessoryId };
+    }
 
     if (!finalPriceId) {
       return res.status(400).json({
@@ -157,7 +242,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       mode: 'payment',
       success_url: `${req.headers.origin}/?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.origin}/?purchase=cancel`,
-      metadata: { userId, accessoryId },
+      metadata,
     });
 
     res.json({ url: session.url });
@@ -196,12 +281,10 @@ app.post('/api/confirm-checkout-session', async (req, res) => {
     }
 
     const sessionUserId = session.metadata?.userId;
-    const accessoryId = session.metadata?.accessoryId;
 
-    if (!sessionUserId || !accessoryId) {
+    if (!sessionUserId) {
       return res.status(400).json({
-        error:
-          'Checkout session is missing required metadata (userId/accessoryId)',
+        error: 'Checkout session is missing required metadata (userId)',
       });
     }
 
@@ -209,40 +292,86 @@ app.post('/api/confirm-checkout-session', async (req, res) => {
       return res.status(403).json({ error: 'Session user mismatch' });
     }
 
-    const { data: existing, error: existingError } = await supabaseAdmin
-      .from('user_accessories')
-      .select('user_id, accessory_id')
-      .eq('user_id', userId)
-      .eq('accessory_id', accessoryId)
-      .maybeSingle();
+    const sessionType = session.metadata?.type;
 
-    if (existingError) throw existingError;
-    let createdNew = false;
+    if (sessionType === 'coin_pack') {
+      // --- Coin Pack confirm ---
+      const coinAmount = parseInt(session.metadata.coinAmount, 10);
+      const { data: currentProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('brawl_coins')
+        .eq('id', userId)
+        .single();
 
-    if (!existing) {
-      const { error: insertError } = await supabaseAdmin
-        .from('user_accessories')
-        .insert({
-          user_id: userId,
-          accessory_id: accessoryId,
-          is_equipped: false,
-        });
+      if (currentProfile) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ brawl_coins: currentProfile.brawl_coins + coinAmount })
+          .eq('id', userId);
+      }
 
-      createdNew = true;
-      if (insertError) throw insertError;
-    }
-
-    if (createdNew) {
-      // Notify player via Socket if connected (only on first unlock)
-      for (const [id, socket] of io.sockets.sockets) {
-        if (socket.user?.id === userId) {
-          socket.emit('item-unlocked', { id: accessoryId });
-          console.log(`[STRIPE] Notified socket ${id} of unlock (confirm)`);
+      // Notify via socket
+      for (const [id, s] of io.sockets.sockets) {
+        if (s.user?.id === userId) {
+          const { data: updatedProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('brawl_coins')
+            .eq('id', userId)
+            .single();
+          s.emit('coin-balance-updated', {
+            balance: updatedProfile?.brawl_coins ?? 0,
+          });
+          console.log(
+            `[STRIPE] Notified socket ${id} of coin balance (confirm)`
+          );
         }
       }
-    }
 
-    res.json({ ok: true, accessoryId, alreadyOwned: Boolean(existing) });
+      res.json({ ok: true, type: 'coin_pack', coinAmount });
+    } else {
+      // --- Legacy Accessory confirm ---
+      const accessoryId = session.metadata?.accessoryId;
+
+      if (!accessoryId) {
+        return res.status(400).json({
+          error: 'Checkout session is missing required metadata (accessoryId)',
+        });
+      }
+
+      const { data: existing, error: existingError } = await supabaseAdmin
+        .from('user_accessories')
+        .select('user_id, accessory_id')
+        .eq('user_id', userId)
+        .eq('accessory_id', accessoryId)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+      let createdNew = false;
+
+      if (!existing) {
+        const { error: insertError } = await supabaseAdmin
+          .from('user_accessories')
+          .insert({
+            user_id: userId,
+            accessory_id: accessoryId,
+            is_equipped: false,
+          });
+
+        createdNew = true;
+        if (insertError) throw insertError;
+      }
+
+      if (createdNew) {
+        for (const [id, s] of io.sockets.sockets) {
+          if (s.user?.id === userId) {
+            s.emit('item-unlocked', { id: accessoryId });
+            console.log(`[STRIPE] Notified socket ${id} of unlock (confirm)`);
+          }
+        }
+      }
+
+      res.json({ ok: true, accessoryId, alreadyOwned: Boolean(existing) });
+    }
   } catch (err) {
     console.error('[STRIPE] Confirm checkout failed:', err.message);
     res.status(500).json({ error: err.message });
@@ -278,10 +407,20 @@ setInterval(() => {
 }, 30000);
 
 // ============================================================
+// Title → Color Mapping (hardcoded for MVP)
+// ============================================================
+const TITLE_COLORS = {
+  VIP: '#ffd700',
+  'Ace Striker': '#ff6b35',
+  'Shadow Legend': '#a855f7',
+  'Inferno King': '#ef4444',
+};
+
+// ============================================================
 // Socket.IO Connection & Authentication
 // ============================================================
 
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token;
   const nickname = socket.handshake.auth?.nickname;
   const equippedAccessories = socket.handshake.auth?.equippedAccessories || [];
@@ -323,6 +462,31 @@ io.use((socket, next) => {
     // decoded contains sub (userId), email, etc.
     const verifiedNickname = nickname || decoded.email.split('@')[0];
 
+    // Fetch equipped cosmetics (title + goal explosion) from Supabase
+    let cosmetics = {};
+    try {
+      const { data: equipped } = await supabaseAdmin
+        .from('user_accessories')
+        .select('accessory_id, accessories(name, category)')
+        .eq('user_id', decoded.sub)
+        .eq('is_equipped', true);
+
+      if (equipped) {
+        for (const item of equipped) {
+          const acc = item.accessories;
+          if (!acc) continue;
+          if (acc.category === 'player_title') {
+            cosmetics.title = acc.name;
+            cosmetics.nameColor = TITLE_COLORS[acc.name] || '#ffd700';
+          } else if (acc.category === 'goal_explosion') {
+            cosmetics.goalExplosion = acc.name;
+          }
+        }
+      }
+    } catch (cosmeticErr) {
+      console.warn('[AUTH] Failed to fetch cosmetics:', cosmeticErr.message);
+    }
+
     socket.user = {
       id: decoded.sub,
       email: decoded.email,
@@ -330,6 +494,7 @@ io.use((socket, next) => {
       equippedAccessories,
       isGuest: false,
       sessionId,
+      cosmetics,
     };
     next();
   } catch (err) {
@@ -402,6 +567,19 @@ io.on('connection', (socket) => {
       key,
       params,
     };
+
+    // Attach title/nameColor for user messages
+    if (type === 'user' && currentRoomId) {
+      const room = rooms.get(currentRoomId);
+      if (room) {
+        const player = room.players.get(socket.id);
+        if (player?.title) {
+          msg.title = player.title;
+          msg.nameColor = player.nameColor;
+        }
+      }
+    }
+
     io.to(currentRoomId).emit('chat_message', msg);
   };
 
@@ -426,7 +604,8 @@ io.on('connection', (socket) => {
       nickname.trim(),
       true,
       socket.user.equippedAccessories,
-      socket.user.sessionId
+      socket.user.sessionId,
+      socket.user.cosmetics || {}
     );
     currentRoomId = roomId;
     socket.join(roomId);
@@ -475,7 +654,8 @@ io.on('connection', (socket) => {
       nickname.trim(),
       returningHost,
       socket.user.equippedAccessories,
-      socket.user.sessionId
+      socket.user.sessionId,
+      socket.user.cosmetics || {}
     );
     currentRoomId = roomId;
     socket.join(roomId);
@@ -607,6 +787,54 @@ io.on('connection', (socket) => {
   // ---- Chat ----
   socket.on('ping-check', (cb) => {
     if (typeof cb === 'function') cb();
+  });
+
+  // ---- Buy Item with Coins ----
+  socket.on('buy-item-with-coins', async (data, callback) => {
+    if (!callback || typeof callback !== 'function') return;
+    if (socket.user.isGuest) {
+      return callback({ ok: false, error: 'guests_cannot_buy' });
+    }
+
+    const { accessoryId } = data || {};
+    if (!accessoryId) {
+      return callback({ ok: false, error: 'missing_accessory_id' });
+    }
+
+    try {
+      const { data: result, error } = await supabaseAdmin.rpc(
+        'buy_item_with_coins',
+        {
+          p_user_id: socket.user.id,
+          p_accessory_id: accessoryId,
+        }
+      );
+
+      if (error) {
+        console.error('[COINS] RPC error:', error.message);
+        return callback({ ok: false, error: error.message });
+      }
+
+      if (!result || !result.ok) {
+        return callback({
+          ok: false,
+          error: result?.error || 'unknown_error',
+          required: result?.required,
+          balance: result?.balance,
+        });
+      }
+
+      // Success — notify client
+      socket.emit('item-unlocked', { id: accessoryId });
+      socket.emit('coin-balance-updated', { balance: result.new_balance });
+      console.log(
+        `[COINS] ${socket.user.nickname} bought ${accessoryId}, new balance: ${result.new_balance}`
+      );
+      callback({ ok: true, newBalance: result.new_balance });
+    } catch (err) {
+      console.error('[COINS] Unexpected error:', err.message);
+      callback({ ok: false, error: 'server_error' });
+    }
   });
 
   // ---- Chat ----

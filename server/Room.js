@@ -40,7 +40,8 @@ export class Room {
     nickname,
     isHost,
     equippedAccessories = [],
-    sessionId = null
+    sessionId = null,
+    cosmetics = {} // { title, nameColor, goalExplosion }
   ) {
     const team = this._getSmallestTeam();
 
@@ -62,6 +63,9 @@ export class Room {
       isHost: assignedHostStatus,
       socket,
       equippedAccessories,
+      title: cosmetics.title || null,
+      nameColor: cosmetics.nameColor || null,
+      goalExplosion: cosmetics.goalExplosion || null,
     };
     this.players.set(socket.id, player);
 
@@ -273,6 +277,7 @@ export class Room {
       team,
       scorer: scorerName,
       score: { ...this.score },
+      goalExplosion: scorer?.goalExplosion || null,
     });
 
     this._setTimeout(() => {
@@ -349,6 +354,8 @@ export class Room {
         isHost: p.isHost,
         equippedAccessories: p.equippedAccessories,
         isDisconnected,
+        title: p.title || undefined,
+        nameColor: p.nameColor || undefined,
       });
     }
     return {

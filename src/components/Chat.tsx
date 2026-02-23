@@ -90,7 +90,33 @@ export default function Chat({ isGameOverlay = false }: ChatProps) {
               })}
             </span>
             {msg.type === 'user' && (
-              <span className="chat-nickname">{msg.nickname}: </span>
+              <>
+                {msg.title && (
+                  <span
+                    className="chat-title-badge"
+                    style={{
+                      fontSize: '8px',
+                      fontWeight: 800,
+                      padding: '1px 5px',
+                      borderRadius: '3px',
+                      marginRight: '4px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      background: `${msg.nameColor || '#ffd700'}22`,
+                      color: msg.nameColor || '#ffd700',
+                      border: `1px solid ${msg.nameColor || '#ffd700'}44`,
+                    }}
+                  >
+                    {msg.title}
+                  </span>
+                )}
+                <span
+                  className="chat-nickname"
+                  style={msg.nameColor ? { color: msg.nameColor } : undefined}
+                >
+                  {msg.nickname}:{' '}
+                </span>
+              </>
             )}
             <span className="chat-text">
               {msg.key

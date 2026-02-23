@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import Chat from '../components/Chat';
 import GameScene from '../components/GameScene';
+import { GoalExplosion } from '../components/GameScene/GoalExplosion';
 import CountdownOverlay from '../components/HUD/CountdownOverlay';
 import GameOverOverlay from '../components/HUD/GameOverOverlay';
 import GoalOverlay from '../components/HUD/GoalOverlay';
@@ -38,6 +39,7 @@ export default function Game() {
   const [goalInfo, setGoalInfo] = useState<{
     team: Team;
     scorer: string;
+    goalExplosion?: string;
   } | null>(null);
   const [gameOver, setGameOver] = useState<{
     score: { blue: number; red: number };
@@ -107,11 +109,16 @@ export default function Game() {
       team: Team;
       scorer: string;
       score: { blue: number; red: number };
+      goalExplosion?: string;
     }) => {
-      setGoalInfo(data);
+      setGoalInfo({
+        team: data.team,
+        scorer: data.scorer,
+        goalExplosion: data.goalExplosion,
+      });
       setScore(data.score);
       if (isSoundEnabled) AudioManager.playGoal();
-      setTimeout(() => setGoalInfo(null), 2000);
+      setTimeout(() => setGoalInfo(null), 2500);
     };
 
     const handleGameEnded = (data: {
@@ -204,6 +211,13 @@ export default function Game() {
             room={room}
             pitchTextureUrl={room?.fieldTexture || ''}
           />
+          {goalInfo?.goalExplosion && (
+            <GoalExplosion
+              type={goalInfo.goalExplosion}
+              team={goalInfo.team}
+              onComplete={() => {}}
+            />
+          )}
         </Suspense>
       </Canvas>
 

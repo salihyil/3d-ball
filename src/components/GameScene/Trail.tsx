@@ -1,12 +1,15 @@
 import { Trail as DreiTrail } from '@react-three/drei';
 import { memo } from 'react';
 
+import * as THREE from 'three';
+
 interface TrailProps {
   id: string;
   team: 'red' | 'blue';
+  target?: React.RefObject<THREE.Group | null>;
 }
 
-export const Trail = memo(({ id, team }: TrailProps) => {
+export const Trail = memo(({ id, team, target }: TrailProps) => {
   // Trail IDs mapping (these should match the database/types)
   const isNeonTrail = id === 'e1b2c3d4-0000-4000-8000-000000000003';
   const isFireTrail =
@@ -30,6 +33,7 @@ export const Trail = memo(({ id, team }: TrailProps) => {
       length={length}
       color={color}
       attenuation={(t) => t * t}
+      target={target as unknown as React.RefObject<THREE.Object3D>}
     >
       {/* The trail attaches to its parent's movement */}
     </DreiTrail>

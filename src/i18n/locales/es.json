@@ -102,7 +102,9 @@
       "hat": "Sombreros",
       "aura": "Auras",
       "decal": "Calcomanías",
-      "trail": "Rastros"
+      "trail": "Rastros",
+      "goal_explosion": "Goal Explosions",
+      "player_title": "Player Titles"
     }
   }
 }

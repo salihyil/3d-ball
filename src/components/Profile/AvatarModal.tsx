@@ -1,6 +1,6 @@
 import { OrbitControls, Stage } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
-import { memo, Suspense } from 'react';
+import { memo, Suspense, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { socket } from '../../hooks/useNetwork';
 import { usePlayerProfile } from '../../hooks/usePlayerProfile';
@@ -23,12 +23,158 @@ function PreviewLoading() {
   );
 }
 
+// ---- Coin Pack Card ----
+function CoinPackCard({
+  coins,
+  price,
+  label,
+  bonus,
+  popular,
+  onClick,
+}: {
+  coins: number;
+  price: number;
+  label: string;
+  bonus?: string;
+  popular?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      style={{
+        flex: 1,
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '6px',
+        padding: popular ? '14px 10px 12px' : '12px 10px',
+        background: popular
+          ? 'linear-gradient(160deg, rgba(255,215,0,0.12) 0%, rgba(255,140,0,0.06) 100%)'
+          : 'rgba(255,255,255,0.02)',
+        border: popular
+          ? '1px solid rgba(255,215,0,0.35)'
+          : '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '10px',
+        cursor: 'pointer',
+        fontFamily: 'var(--font-mono)',
+        transition: 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+        overflow: 'hidden',
+      }}
+      onMouseEnter={(e) => {
+        const t = e.currentTarget;
+        t.style.transform = 'translateY(-3px) scale(1.03)';
+        t.style.borderColor = popular
+          ? 'rgba(255,215,0,0.6)'
+          : 'rgba(255,215,0,0.3)';
+        t.style.boxShadow = popular
+          ? '0 8px 24px rgba(255,215,0,0.15), 0 0 20px rgba(255,215,0,0.1)'
+          : '0 4px 16px rgba(255,215,0,0.08)';
+      }}
+      onMouseLeave={(e) => {
+        const t = e.currentTarget;
+        t.style.transform = '';
+        t.style.borderColor = popular
+          ? 'rgba(255,215,0,0.35)'
+          : 'rgba(255,255,255,0.06)';
+        t.style.boxShadow = '';
+      }}
+    >
+      {/* Popular badge */}
+      {popular && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '-1px',
+            right: '8px',
+            background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
+            color: '#000',
+            fontSize: '7px',
+            fontWeight: 900,
+            padding: '2px 6px 3px',
+            borderRadius: '0 0 4px 4px',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+          }}
+        >
+          BEST VALUE
+        </div>
+      )}
+
+      {/* Coin icon */}
+      <span style={{ fontSize: '22px', lineHeight: 1 }}>🪙</span>
+
+      {/* Coin amount */}
+      <span
+        style={{
+          fontSize: '18px',
+          fontWeight: 800,
+          color: '#ffd700',
+          textShadow: '0 0 12px rgba(255,215,0,0.3)',
+          lineHeight: 1,
+        }}
+      >
+        {coins.toLocaleString()}
+      </span>
+
+      {/* Label */}
+      <span
+        style={{
+          fontSize: '8px',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+        }}
+      >
+        {label}
+      </span>
+
+      {/* Bonus tag */}
+      {bonus && (
+        <span
+          style={{
+            fontSize: '8px',
+            fontWeight: 700,
+            color: '#4ade80',
+            background: 'rgba(74,222,128,0.1)',
+            padding: '1px 6px',
+            borderRadius: '3px',
+            border: '1px solid rgba(74,222,128,0.2)',
+          }}
+        >
+          {bonus}
+        </span>
+      )}
+
+      {/* Price */}
+      <span
+        style={{
+          fontSize: '13px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          marginTop: '2px',
+        }}
+      >
+        ${price}
+      </span>
+    </button>
+  );
+}
+
 export const AvatarModal = memo(function AvatarModal({
   isOpen,
   onClose,
 }: AvatarModalProps) {
   const { t } = useTranslation();
-  const { accessories, loading, toggleAccessory } = usePlayerProfile();
+  const { accessories, loading, toggleAccessory, buyWithCoins, profile } =
+    usePlayerProfile();
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [showCoinShop, setShowCoinShop] = useState(false);
+  const isBuyingRef = useRef(false);
 
   if (!isOpen) return null;
 
@@ -41,12 +187,9 @@ export const AvatarModal = memo(function AvatarModal({
 
       await toggleAccessory(id, category);
 
-      // Construct the next list of IDs to emit immediately for lobby sync
       const nextIds = accessories
         .map((a) => {
           if (a.category === category) {
-            // If we are equipping this item, it's the only one in the cat.
-            // If we are unequipping it, the cat will be empty.
             if (isEquipping) {
               return a.id === id ? a.id : null;
             }
@@ -62,7 +205,28 @@ export const AvatarModal = memo(function AvatarModal({
     }
   };
 
-  const handleBuy = async (accessoryId: string, stripePriceId: string) => {
+  const handleBuyWithCoins = async (accessoryId: string) => {
+    if (isBuyingRef.current) return;
+    isBuyingRef.current = true;
+    setBuyingId(accessoryId);
+    try {
+      const result = await buyWithCoins(accessoryId);
+      if (result.ok) {
+        // Success — item unlocked, balance updated automatically
+      } else if (result.error === 'insufficient_coins') {
+        setShowCoinShop(true);
+      } else {
+        alert(result.error || 'Purchase failed');
+      }
+    } catch (err) {
+      console.error('Coin purchase failed:', err);
+    } finally {
+      isBuyingRef.current = false;
+      setBuyingId(null);
+    }
+  };
+
+  const handleBuyCoins = async (packId: 'starter' | 'value' = 'starter') => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -74,8 +238,8 @@ export const AvatarModal = memo(function AvatarModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           accessToken: session.access_token,
-          accessoryId,
-          priceId: stripePriceId,
+          type: 'coin_pack',
+          coinPackId: packId,
         }),
       });
 
@@ -83,12 +247,13 @@ export const AvatarModal = memo(function AvatarModal({
       if (error) throw new Error(error);
       if (url) window.location.href = url;
     } catch (err) {
-      console.error('Purchase failed:', err);
-      alert('Payment processing failed. Please try again.');
+      console.error('Coin purchase redirect failed:', err);
+      alert('Failed to open payment page. Please try again.');
     }
   };
 
   const equippedIds = accessories.filter((a) => a.is_equipped).map((a) => a.id);
+  const coinBalance = profile?.brawl_coins ?? 0;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -97,7 +262,7 @@ export const AvatarModal = memo(function AvatarModal({
         style={{
           padding: '0',
           background: 'rgba(5, 5, 8, 0.95)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           flexDirection: 'column',
         }}
@@ -180,17 +345,19 @@ export const AvatarModal = memo(function AvatarModal({
             </div>
           </div>
 
-          {/* Accessory Selection Section */}
+          {/* Right Panel: Coin Balance + Shop / Accessories */}
           <div
             style={{
               flex: 1,
               display: 'flex',
               flexDirection: 'column',
-              padding: '40px',
-              maxWidth: '400px',
+              padding: '32px',
+              maxWidth: '420px',
+              gap: '0',
             }}
           >
-            <div className="modal-header" style={{ marginBottom: '32px' }}>
+            {/* ========== HEADER ========== */}
+            <div style={{ marginBottom: '20px' }}>
               <div
                 style={{
                   display: 'flex',
@@ -219,24 +386,144 @@ export const AvatarModal = memo(function AvatarModal({
               </p>
             </div>
 
+            {/* ========== COIN WALLET BAR ========== */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 16px',
+                background:
+                  'linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(255,140,0,0.03) 100%)',
+                border: '1px solid rgba(255,215,0,0.15)',
+                borderRadius: '10px',
+                marginBottom: '8px',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Animated shimmer */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background:
+                    'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.04) 50%, transparent 100%)',
+                  animation: 'scan 3s ease-in-out infinite',
+                  pointerEvents: 'none',
+                }}
+              />
+
+              <span style={{ fontSize: '20px', zIndex: 1 }}>🪙</span>
+              <div style={{ zIndex: 1 }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '20px',
+                    fontWeight: 800,
+                    color: '#ffd700',
+                    lineHeight: 1,
+                    textShadow: '0 0 16px rgba(255,215,0,0.4)',
+                  }}
+                >
+                  {coinBalance.toLocaleString()}
+                </div>
+                <div
+                  style={{
+                    fontSize: '9px',
+                    color: 'rgba(255,215,0,0.5)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1.5px',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  Brawl Coins
+                </div>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCoinShop(!showCoinShop);
+                }}
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '6px 14px',
+                  background: showCoinShop
+                    ? 'rgba(255,215,0,0.2)'
+                    : 'rgba(255,215,0,0.1)',
+                  color: '#ffd700',
+                  border: '1px solid rgba(255,215,0,0.25)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '0.5px',
+                  transition: 'all 0.2s ease',
+                  zIndex: 1,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,215,0,0.25)';
+                  e.currentTarget.style.boxShadow =
+                    '0 0 12px rgba(255,215,0,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = showCoinShop
+                    ? 'rgba(255,215,0,0.2)'
+                    : 'rgba(255,215,0,0.1)';
+                  e.currentTarget.style.boxShadow = '';
+                }}
+              >
+                {showCoinShop ? '✕' : '+ GET'}
+              </button>
+            </div>
+
+            {/* ========== COIN SHOP PANEL (collapsible) ========== */}
+            <div
+              style={{
+                maxHeight: showCoinShop ? '160px' : '0',
+                overflow: 'hidden',
+                transition: 'max-height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '10px',
+                  padding: '12px 0 16px',
+                }}
+              >
+                <CoinPackCard
+                  coins={500}
+                  price={5}
+                  label="Starter"
+                  onClick={() => handleBuyCoins('starter')}
+                />
+                <CoinPackCard
+                  coins={1200}
+                  price={10}
+                  label="Value Pack"
+                  bonus="+20% EXTRA"
+                  popular
+                  onClick={() => handleBuyCoins('value')}
+                />
+              </div>
+            </div>
+
+            {/* ========== ACCESSORIES GRID ========== */}
             <div
               className="accessory-grid premium-scroll"
               style={{
                 flex: 1,
                 overflowY: 'auto',
-                paddingRight: '12px',
+                paddingRight: '8px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '24px',
               }}
             >
               {loading && accessories.length === 0 && (
-                <div
-                  style={{
-                    padding: '40px',
-                    textAlign: 'center',
-                  }}
-                >
+                <div style={{ padding: '40px', textAlign: 'center' }}>
                   <div
                     className="animate-spin"
                     style={{
@@ -251,26 +538,35 @@ export const AvatarModal = memo(function AvatarModal({
                 </div>
               )}
 
-              {['ball_skin', 'hat', 'aura', 'decal', 'trail'].map(
-                (cat, catIdx) => {
-                  const catItems = accessories.filter(
-                    (a) => a.category === cat
-                  );
-                  if (catItems.length === 0) return null;
+              {[
+                'ball_skin',
+                'hat',
+                'aura',
+                'decal',
+                'trail',
+                'goal_explosion',
+                'player_title',
+              ].map((cat, catIdx) => {
+                const catItems = accessories.filter((a) => a.category === cat);
+                if (catItems.length === 0) return null;
 
-                  return (
-                    <div key={cat}>
-                      <div className="avatar-modal-gear-title">
-                        {t(`profile.categories.${cat}`)}
-                      </div>
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(3, 1fr)',
-                          gap: '12px',
-                        }}
-                      >
-                        {catItems.map((acc, i) => (
+                return (
+                  <div key={cat}>
+                    <div className="avatar-modal-gear-title">
+                      {t(`profile.categories.${cat}`)}
+                    </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '10px',
+                      }}
+                    >
+                      {catItems.map((acc, i) => {
+                        const canAfford = coinBalance >= acc.price_coins;
+                        const isPaid = acc.price_coins > 0;
+
+                        return (
                           <div
                             key={acc.id}
                             className={`accessory-card glass-card accessory-card-stagger ${
@@ -281,11 +577,11 @@ export const AvatarModal = memo(function AvatarModal({
                                 : 'locked'
                             }`}
                             style={{
-                              padding: '16px 8px',
+                              padding: '14px 8px',
                               margin: 0,
                               position: 'relative',
                               animationDelay: `${catIdx * 0.1 + i * 0.05}s`,
-                              borderRadius: '4px',
+                              borderRadius: '8px',
                               overflow: 'visible',
                             }}
                             onClick={() => {
@@ -313,7 +609,11 @@ export const AvatarModal = memo(function AvatarModal({
                                       ? '🌀'
                                       : acc.category === 'decal'
                                         ? '💠'
-                                        : '⚡'}
+                                        : acc.category === 'goal_explosion'
+                                          ? '💥'
+                                          : acc.category === 'player_title'
+                                            ? '🏷️'
+                                            : '⚡'}
                               </span>
                               <div
                                 className="accessory-name"
@@ -327,28 +627,62 @@ export const AvatarModal = memo(function AvatarModal({
                                 {acc.name}
                               </div>
 
+                              {/* ---- Purchase / Status Badges ---- */}
                               {!acc.isOwned ? (
-                                <button
-                                  className="btn-buy"
-                                  style={{
-                                    marginTop: '8px',
-                                    fontSize: '9px',
-                                    padding: '4px 8px',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    color: 'var(--accent)',
-                                    border: '1px solid var(--accent)',
-                                    fontFamily: 'var(--font-mono)',
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleBuy(
-                                      acc.id,
-                                      acc.stripe_price_id || ''
-                                    );
-                                  }}
-                                >
-                                  ${acc.price || '0'}
-                                </button>
+                                isPaid ? (
+                                  <button
+                                    className="btn-buy"
+                                    disabled={buyingId === acc.id}
+                                    style={{
+                                      marginTop: '8px',
+                                      fontSize: '10px',
+                                      fontWeight: 700,
+                                      padding: '4px 10px',
+                                      background: canAfford
+                                        ? 'rgba(255,215,0,0.1)'
+                                        : 'rgba(255,60,60,0.08)',
+                                      color: canAfford ? '#ffd700' : '#ff6b6b',
+                                      border: `1px solid ${
+                                        canAfford
+                                          ? 'rgba(255,215,0,0.3)'
+                                          : 'rgba(255,60,60,0.2)'
+                                      }`,
+                                      borderRadius: '5px',
+                                      fontFamily: 'var(--font-mono)',
+                                      cursor:
+                                        buyingId === acc.id
+                                          ? 'wait'
+                                          : 'pointer',
+                                      opacity: buyingId === acc.id ? 0.5 : 1,
+                                      transition: 'all 0.2s ease',
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (canAfford) {
+                                        handleBuyWithCoins(acc.id);
+                                      } else {
+                                        setShowCoinShop(true);
+                                      }
+                                    }}
+                                  >
+                                    {buyingId === acc.id
+                                      ? '...'
+                                      : `${acc.price_coins} 🪙`}
+                                  </button>
+                                ) : (
+                                  <span
+                                    style={{
+                                      marginTop: '8px',
+                                      fontSize: '9px',
+                                      fontWeight: 700,
+                                      color: '#4ade80',
+                                      fontFamily: 'var(--font-mono)',
+                                      letterSpacing: '1px',
+                                    }}
+                                  >
+                                    FREE
+                                  </span>
+                                )
                               ) : (
                                 acc.is_equipped && (
                                   <div className="equipped-badge-glow">
@@ -358,12 +692,12 @@ export const AvatarModal = memo(function AvatarModal({
                               )}
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                }
-              )}
+                  </div>
+                );
+              })}
             </div>
 
             <button

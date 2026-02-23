@@ -102,7 +102,9 @@
       "hat": "Chapeaux",
       "aura": "Auras",
       "decal": "Décalcomanies",
-      "trail": "Traînées"
+      "trail": "Traînées",
+      "goal_explosion": "Goal Explosions",
+      "player_title": "Player Titles"
     }
   }
 }

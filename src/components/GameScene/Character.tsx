@@ -55,7 +55,7 @@ export const Character = memo(
           {/* Movement Trail - Always at the root of the character group */}
           {accessoriesToRender.map((accId) => (
             <Suspense key={`trail-${accId}`} fallback={null}>
-              <Trail id={accId} team={team} />
+              <Trail id={accId} team={team} target={groupRef} />
             </Suspense>
           ))}
 

@@ -102,7 +102,9 @@
       "hat": "帽子",
       "aura": "光环",
       "decal": "贴花",
-      "trail": "拖尾"
+      "trail": "拖尾",
+      "goal_explosion": "Goal Explosions",
+      "player_title": "Player Titles"
     }
   }
 }

@@ -102,7 +102,9 @@
       "hat": "帽子",
       "aura": "オーラ",
       "decal": "デカール",
-      "trail": "トレイル"
+      "trail": "トレイル",
+      "goal_explosion": "Goal Explosions",
+      "player_title": "Player Titles"
     }
   }
 }

@@ -102,7 +102,9 @@
       "hat": "모자",
       "aura": "오라",
       "decal": "데칼",
-      "trail": "트레일"
+      "trail": "트레일",
+      "goal_explosion": "Goal Explosions",
+      "player_title": "Player Titles"
     }
   }
 }

@@ -104,7 +104,9 @@
       "hat": "Hats",
       "aura": "Auras",
       "decal": "Decals",
-      "trail": "Trails"
+      "trail": "Trails",
+      "goal_explosion": "Goal Explosions",
+      "player_title": "Player Titles"
     }
   }
 }

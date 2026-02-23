@@ -24,6 +24,8 @@ export interface PlayerInfo {
   equippedAccessories?: string[];
   sessionId?: string;
   isDisconnected?: boolean;
+  title?: string;
+  nameColor?: string;
 }
 
 export type PowerUpType = 'magnet' | 'freeze' | 'rocket' | 'frozen';
@@ -101,8 +103,10 @@ export interface ChatMessage {
   nickname?: string;
   text: string;
   timestamp: number;
-  key?: string; // Translation key for system messages
-  params?: Record<string, string | number>; // Dynamic parameters for translation
+  key?: string;
+  params?: Record<string, string | number>;
+  title?: string;
+  nameColor?: string;
 }
 
 // Socket.IO event types
@@ -129,6 +133,16 @@ export interface ClientToServerEvents {
   'ping-check': (cb: () => void) => void;
   'kick-player': (data: { targetId: string }) => void;
   'update-accessories': (data: { accessories: string[] }) => void;
+  'buy-item-with-coins': (
+    data: { accessoryId: string },
+    cb: (res: {
+      ok: boolean;
+      error?: string;
+      newBalance?: number;
+      required?: number;
+      balance?: number;
+    }) => void
+  ) => void;
 }
 
 export interface ServerToClientEvents {
@@ -139,6 +153,7 @@ export interface ServerToClientEvents {
     team: Team;
     scorer: string;
     score: { blue: number; red: number };
+    goalExplosion?: string;
   }) => void;
   'game-ended': (data: {
     score: { blue: number; red: number };
@@ -150,6 +165,7 @@ export interface ServerToClientEvents {
   'room-destroyed': () => void;
   kicked: () => void;
   'item-unlocked': (data: { id: string }) => void;
+  'coin-balance-updated': (data: { balance: number }) => void;
   error: (data: { message: string }) => void;
 }
 
@@ -163,14 +179,23 @@ export interface Profile {
   avatar_url: string | null;
   xp: number;
   level: number;
+  brawl_coins: number;
 }
 
 export interface Accessory {
   id: string;
   name: string;
-  category: 'ball_skin' | 'trail' | 'hat' | 'aura' | 'decal';
+  category:
+    | 'ball_skin'
+    | 'trail'
+    | 'hat'
+    | 'aura'
+    | 'decal'
+    | 'goal_explosion'
+    | 'player_title';
   preview_url: string | null;
   price: number;
+  price_coins: number;
   stripe_price_id?: string | null;
   // Included for Shop UI state
   isOwned?: boolean;
