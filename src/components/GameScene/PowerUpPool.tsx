@@ -1,8 +1,8 @@
 import { useFrame } from '@react-three/fiber';
-import { MutableRefObject, memo, useRef } from 'react';
+import { MutableRefObject, memo, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { GameSnapshot } from '../../types';
-import { powerUpGeometry, powerUpMaterials } from './materials';
+import { createPowerUpGeometry, createPowerUpMaterials } from './materials';
 
 const MAX_POWERUPS = 5;
 
@@ -16,6 +16,10 @@ export const PowerUpPool = memo(function PowerUpPool({
   const meshRefs = useRef<(THREE.Mesh | null)[]>(
     Array(MAX_POWERUPS).fill(null)
   );
+
+  // Memoize assets for this context
+  const geo = useMemo(() => createPowerUpGeometry(), []);
+  const mats = useMemo(() => createPowerUpMaterials(), []);
 
   useFrame((state) => {
     const snapshot = latestRef.current;
@@ -37,7 +41,7 @@ export const PowerUpPool = memo(function PowerUpPool({
         );
         mesh.rotation.x = time + i;
         mesh.rotation.y = time + i;
-        mesh.material = powerUpMaterials[items[i].type];
+        mesh.material = mats[items[i].type as keyof typeof mats];
       } else {
         mesh.visible = false;
       }
@@ -52,7 +56,7 @@ export const PowerUpPool = memo(function PowerUpPool({
           ref={(r) => {
             meshRefs.current[i] = r;
           }}
-          geometry={powerUpGeometry}
+          geometry={geo}
           castShadow
           visible={false}
         />

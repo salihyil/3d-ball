@@ -28,7 +28,7 @@ describe('Room', () => {
   });
 
   it('should add a player', () => {
-    const socketMock = { id: 'socket-1' };
+    const socketMock = { id: 'socket-1', user: { id: 'db-1' } };
     room.addPlayer(socketMock, 'Player 1', true);
 
     expect(room.players.has('socket-1')).toBe(true);
@@ -38,9 +38,9 @@ describe('Room', () => {
   });
 
   it('should balance teams when adding players', () => {
-    room.addPlayer({ id: 's1' }, 'P1', true); // blue
-    room.addPlayer({ id: 's2' }, 'P2', false); // red
-    room.addPlayer({ id: 's3' }, 'P3', false); // blue
+    room.addPlayer({ id: 's1', user: { id: 'u1' } }, 'P1', true); // blue
+    room.addPlayer({ id: 's2', user: { id: 'u2' } }, 'P2', false); // red
+    room.addPlayer({ id: 's3', user: { id: 'u3' } }, 'P3', false); // blue
 
     expect(room.players.get('s1').team).toBe('blue');
     expect(room.players.get('s2').team).toBe('red');
@@ -48,7 +48,7 @@ describe('Room', () => {
   });
 
   it('should handle team switching', () => {
-    room.addPlayer({ id: 's1' }, 'P1', true); // blue
+    room.addPlayer({ id: 's1', user: { id: 'u1' } }, 'P1', true); // blue
     const result = room.switchTeam('s1', 'red');
 
     expect(result.success).toBe(true);
@@ -59,10 +59,14 @@ describe('Room', () => {
   it('should prevent switching to a full team', () => {
     // Fill red team (max is 5)
     for (let i = 0; i < 5; i++) {
-      room.players.set(`r${i}`, { team: 'red', nickname: `R${i}` });
+      room.players.set(`r${i}`, {
+        id: `u${i}`,
+        team: 'red',
+        nickname: `R${i}`,
+      });
     }
 
-    room.addPlayer({ id: 's1' }, 'P1', true); // goes to blue
+    room.addPlayer({ id: 's1', user: { id: 'u-special' } }, 'P1', true); // goes to blue
     const result = room.switchTeam('s1', 'red');
 
     expect(result.error).toBeDefined();
@@ -70,7 +74,7 @@ describe('Room', () => {
   });
 
   it('should start game correctly', () => {
-    room.addPlayer({ id: 's1' }, 'P1', true);
+    room.addPlayer({ id: 's1', user: { id: 'u1' } }, 'P1', true);
     room.startGame();
 
     expect(room.gameState).toBe('countdown');
@@ -79,8 +83,8 @@ describe('Room', () => {
   });
 
   it('should remove player and handle host leaving', () => {
-    room.addPlayer({ id: 's1' }, 'Host', true);
-    room.addPlayer({ id: 's2' }, 'Guest', false);
+    room.addPlayer({ id: 's1', user: { id: 'u1' } }, 'Host', true);
+    room.addPlayer({ id: 's2', user: { id: 'u2' } }, 'Guest', false);
 
     room.removePlayer('s1');
     expect(room.players.size).toBe(1);
@@ -90,14 +94,14 @@ describe('Room', () => {
   });
 
   it('should identify empty room', () => {
-    room.addPlayer({ id: 's1' }, 'P1', true);
+    room.addPlayer({ id: 's1', user: { id: 'u1' } }, 'P1', true);
     expect(room.isEmpty()).toBe(false);
   });
 
   describe('Host Migration', () => {
     it('should migrate host immediately', () => {
-      room.addPlayer({ id: 's1' }, 'Host', true);
-      room.addPlayer({ id: 's2' }, 'Guest', false);
+      room.addPlayer({ id: 's1', user: { id: 'u1' } }, 'Host', true);
+      room.addPlayer({ id: 's2', user: { id: 'u2' } }, 'Guest', false);
 
       room.removePlayer('s1');
       room.migrateHost();
@@ -107,8 +111,8 @@ describe('Room', () => {
     });
 
     it('should allow reclaimed host status', () => {
-      room.addPlayer({ id: 's1' }, 'Host', true);
-      room.addPlayer({ id: 's2' }, 'Guest', false);
+      room.addPlayer({ id: 's1', user: { id: 'u1' } }, 'Host', true);
+      room.addPlayer({ id: 's2', user: { id: 'u2' } }, 'Guest', false);
 
       room.reclaimHost('s1');
 
@@ -117,9 +121,9 @@ describe('Room', () => {
     });
 
     it('should migrate to the next available player', () => {
-      room.addPlayer({ id: 's1' }, 'Host', true);
-      room.addPlayer({ id: 's2' }, 'Guest 1', false);
-      room.addPlayer({ id: 's3' }, 'Guest 2', false);
+      room.addPlayer({ id: 's1', user: { id: 'u1' } }, 'Host', true);
+      room.addPlayer({ id: 's2', user: { id: 'u2' } }, 'Guest 1', false);
+      room.addPlayer({ id: 's3', user: { id: 'u3' } }, 'Guest 2', false);
 
       room.players.delete('s1'); // Simulate host gone
       room.migrateHost();

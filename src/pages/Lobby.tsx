@@ -41,17 +41,18 @@ export default function Lobby() {
   const dummyLatestRef = useRef<GameSnapshot | null>(null);
 
   useEffect(() => {
-    const nickname = sessionStorage.getItem('bb-nickname');
-    if (!nickname) {
+    const hostToken = sessionStorage.getItem(`host-token-${roomId}`);
+    const currentNickname =
+      socket.auth?.nickname || sessionStorage.getItem('bb-nickname');
+
+    if (!currentNickname) {
       navigate(`/?join=${roomId}`);
       return;
     }
 
-    const hostToken = sessionStorage.getItem(`host-token-${roomId}`);
-
     socket.emit(
       'join-room',
-      { roomId: roomId!, nickname, hostToken },
+      { roomId: roomId!, nickname: currentNickname, hostToken },
       (res: { success: boolean; error?: string; room?: RoomInfo }) => {
         if (res.room) {
           setRoom(res.room);

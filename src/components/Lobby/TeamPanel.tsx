@@ -35,7 +35,22 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
       <div className="team-players">
         {players.map((p) => (
           <div key={p.id} className="team-player">
-            <span className="mono">{p.nickname}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="mono">{p.nickname}</span>
+              {p.equippedAccessories && p.equippedAccessories.length > 0 && (
+                <div style={{ display: 'flex', gap: '4px', opacity: 0.8 }}>
+                  {p.equippedAccessories.map((accId) => (
+                    <span key={accId} style={{ fontSize: '14px' }}>
+                      {accId.includes('hat')
+                        ? '👒'
+                        : accId.includes('skin')
+                          ? '🟡'
+                          : '✨'}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             {p.isHost && (
               <span className="host-badge" data-testid="host-badge">
                 {t('common.host')}

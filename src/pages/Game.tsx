@@ -66,7 +66,7 @@ export default function Game() {
       const hostToken = sessionStorage.getItem(`host-token-${roomId}`);
       socket.emit(
         'join-room',
-        { roomId, nickname, hostToken },
+        { roomId: roomId!, nickname, hostToken },
         (res: { success: boolean; error?: string; room?: RoomInfo }) => {
           if (res.success && res.room) {
             const me = res.room.players.find(

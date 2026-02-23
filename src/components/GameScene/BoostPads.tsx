@@ -1,14 +1,14 @@
 import { useFrame } from '@react-three/fiber';
-import { MutableRefObject, memo, useRef } from 'react';
+import { MutableRefObject, memo, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { GameSnapshot } from '../../types';
 import { FIELD_BOOST_PADS } from '../../types';
 import {
-  boostPadActiveMaterial,
-  boostPadGeometry,
-  boostPadInactiveMaterial,
-  boostPadRingGeometry,
-  boostPadRingMaterial,
+  createBoostPadActiveMaterial,
+  createBoostPadGeometry,
+  createBoostPadInactiveMaterial,
+  createBoostPadRingGeometry,
+  createBoostPadRingMaterial,
 } from './materials';
 
 interface BoostPadsProps {
@@ -23,6 +23,13 @@ export const BoostPads = memo(function BoostPads({
   );
   const lastTickRef = useRef<number>(-1);
   const padStateMapRef = useRef<Map<string, boolean>>(new Map());
+
+  // Memoize assets for this context
+  const activeMat = useMemo(() => createBoostPadActiveMaterial(), []);
+  const inactiveMat = useMemo(() => createBoostPadInactiveMaterial(), []);
+  const geo = useMemo(() => createBoostPadGeometry(), []);
+  const ringGeo = useMemo(() => createBoostPadRingGeometry(), []);
+  const ringMat = useMemo(() => createBoostPadRingMaterial(), []);
 
   useFrame((state, delta) => {
     const snapshot = latestRef.current;
@@ -47,10 +54,10 @@ export const BoostPads = memo(function BoostPads({
         : true;
 
       if (isActive) {
-        mesh.material = boostPadActiveMaterial;
+        mesh.material = activeMat;
         mesh.rotation.y += delta * 2;
       } else {
-        mesh.material = boostPadInactiveMaterial;
+        mesh.material = inactiveMat;
       }
     }
   });
@@ -63,16 +70,16 @@ export const BoostPads = memo(function BoostPads({
             ref={(r) => {
               meshRefs.current[i] = r;
             }}
-            geometry={boostPadGeometry}
+            geometry={geo}
             scale={[pad.radius, 1, pad.radius]}
             receiveShadow
-            material={boostPadActiveMaterial}
+            material={activeMat}
           />
           <mesh
             position={[0, 0.11, 0]}
             rotation={[-Math.PI / 2, 0, 0]}
-            geometry={boostPadRingGeometry}
-            material={boostPadRingMaterial}
+            geometry={ringGeo}
+            material={ringMat}
             scale={[pad.radius, pad.radius, 1]}
           />
         </group>

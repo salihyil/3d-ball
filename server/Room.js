@@ -34,7 +34,7 @@ export class Room {
     return timer;
   }
 
-  addPlayer(socket, nickname, isHost) {
+  addPlayer(socket, nickname, isHost, equippedAccessories = []) {
     const team = this._getSmallestTeam();
 
     // Safety: ensure only one host exists if isHost is requested
@@ -47,10 +47,13 @@ export class Room {
     }
 
     const player = {
+      id: socket.user.id, // Databases ID
+      socketId: socket.id, // Socket Connection ID
       nickname,
       team,
       isHost: assignedHostStatus,
       socket,
+      equippedAccessories,
     };
     this.players.set(socket.id, player);
 
@@ -145,6 +148,13 @@ export class Room {
     }, 5000);
   }
 
+  updatePlayerAccessories(socketId, accessories) {
+    const player = this.players.get(socketId);
+    if (player) {
+      player.equippedAccessories = accessories;
+    }
+  }
+
   handleInput(socketId, input) {
     if (this.gameLoop) {
       this.gameLoop.handleInput(socketId, input);
@@ -220,12 +230,14 @@ export class Room {
 
   getRoomInfo() {
     const players = [];
-    for (const [id, p] of this.players) {
+    for (const [socketId, p] of this.players) {
       players.push({
-        id,
+        id: socketId, // Keep for backward compatibility with UI
+        userId: p.id,
         nickname: p.nickname,
         team: p.team,
         isHost: p.isHost,
+        equippedAccessories: p.equippedAccessories,
       });
     }
     return {
@@ -303,13 +315,25 @@ export class Room {
     if (this.players.size > 0) {
       const firstPlayerId = this.players.keys().next().value;
       const newHost = this.players.get(firstPlayerId);
-      newHost.isHost = true;
-      console.log(
-        `[ROOM] ${this.roomId} Host migrated to "${newHost.nickname}" (${firstPlayerId})`
-      );
+      if (newHost) {
+        newHost.isHost = true;
+        console.log(
+          `[ROOM] ${this.roomId} Host migrated to "${newHost.nickname}" (${firstPlayerId})`
+        );
+      }
     }
 
     this.io.to(this.roomId).emit('room-update', this.getRoomInfo());
+  }
+
+  // Safety method to check if a room has a host, and migrate if not
+  validateHost() {
+    if (this.players.size > 0 && !this._getHostId()) {
+      console.warn(
+        `[ROOM] ${this.roomId} Hostless room detected. Recovering...`
+      );
+      this.migrateHost();
+    }
   }
 
   reclaimHost(socketId) {

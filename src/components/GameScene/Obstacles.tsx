@@ -1,12 +1,12 @@
 import { useFrame } from '@react-three/fiber';
-import { MutableRefObject, memo, useRef } from 'react';
+import { MutableRefObject, memo, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { GameSnapshot } from '../../types';
 import { FIELD_OBSTACLES } from '../../types';
 import {
-  obstacleMaterial,
-  obstacleRingGeometry,
-  obstacleRingMaterial,
+  createObstacleMaterial,
+  createObstacleRingGeometry,
+  createObstacleRingMaterial,
 } from './materials';
 
 interface ObstaclesProps {
@@ -17,6 +17,11 @@ export const Obstacles = memo(function Obstacles({
   latestRef,
 }: ObstaclesProps) {
   const groupRefs = useRef<(THREE.Group | null)[]>([]);
+
+  // Memoize assets for this context
+  const mat = useMemo(() => createObstacleMaterial(), []);
+  const ringGeo = useMemo(() => createObstacleRingGeometry(), []);
+  const ringMat = useMemo(() => createObstacleRingMaterial(), []);
 
   useFrame(() => {
     const snapshot = latestRef.current;
@@ -42,13 +47,13 @@ export const Obstacles = memo(function Obstacles({
         >
           <mesh position={[0, obs.height / 2, 0]} castShadow receiveShadow>
             <cylinderGeometry args={[obs.radius, obs.radius, obs.height, 32]} />
-            <primitive object={obstacleMaterial} attach="material" />
+            <primitive object={mat} attach="material" />
           </mesh>
           <mesh
             position={[0, 0.05, 0]}
             rotation={[-Math.PI / 2, 0, 0]}
-            geometry={obstacleRingGeometry}
-            material={obstacleRingMaterial}
+            geometry={ringGeo}
+            material={ringMat}
             scale={[obs.radius + 0.2, obs.radius + 0.2, 1]}
           />
         </group>

@@ -806,6 +806,8 @@ export class GameLoop {
         boostCooldown: Math.max(0, p.boostCooldown),
         team: p.team,
         activePowerUp: p.activePowerUp,
+        equippedAccessories:
+          this.room.players.get(id)?.equippedAccessories || [],
       };
     }
 

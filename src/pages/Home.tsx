@@ -1,17 +1,37 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import AuthModal from '../components/Auth/AuthModal';
 import LanguageSelector from '../components/LanguageSelector';
+import { AvatarModal } from '../components/Profile/AvatarModal';
+import { useAuth } from '../hooks/useAuth';
 import { socket } from '../hooks/useNetwork';
 
 export default function Home() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [nickname, setNickname] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [matchDuration, setMatchDuration] = useState(5);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (user?.email) {
+      // If user is logged in and has no nickname set yet, try to use email prefix or metadata
+      const savedNickname = sessionStorage.getItem('bb-nickname');
+      if (!savedNickname) {
+        const defaultNickname =
+          user.user_metadata?.full_name || user.email.split('@')[0];
+        setNickname(defaultNickname.substring(0, 16));
+      } else {
+        setNickname(savedNickname);
+      }
+    }
+  }, [user]);
 
   const handleCreate = useCallback(() => {
     if (!nickname.trim()) {
@@ -71,12 +91,84 @@ export default function Home() {
         style={{
           position: 'absolute',
           top: '24px',
+          left: '24px',
+          zIndex: 1000,
+          display: 'flex',
+          gap: '12px',
+        }}
+      >
+        {user ? (
+          <div
+            className="glass-card"
+            style={{
+              padding: '8px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              borderRadius: 'var(--radius-md)',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--accent)',
+              }}
+            >
+              {user.email}
+            </span>
+            <button
+              className="btn btn-primary"
+              style={{
+                padding: '4px 16px',
+                fontSize: '12px',
+                background:
+                  'linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%)',
+              }}
+              onClick={() => setIsAvatarModalOpen(true)}
+            >
+              {t('home.customize_btn', 'Karakteri Özelleştir')}
+            </button>
+            <button
+              className="btn btn-outline"
+              style={{ padding: '4px 12px', fontSize: '12px' }}
+              onClick={() => signOut()}
+            >
+              {t('common.logout', 'Logout')}
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn btn-primary"
+            style={{ padding: '8px 20px' }}
+            onClick={() => setIsAuthModalOpen(true)}
+          >
+            {t('common.login', 'Login / Register')}
+          </button>
+        )}
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          top: '24px',
           right: '24px',
           zIndex: 1000,
         }}
       >
         <LanguageSelector />
       </div>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+
+      <AvatarModal
+        isOpen={isAvatarModalOpen}
+        onClose={() => setIsAvatarModalOpen(false)}
+      />
+
       <div className="page-center">
         <div className="home-container">
           <h1 className="home-title animate-in">{t('home.title')}</h1>

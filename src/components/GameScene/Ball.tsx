@@ -3,7 +3,7 @@ import { MutableRefObject, memo, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BALL_RADIUS, GameSnapshot } from '../../types';
 import { AudioManager } from '../../utils/AudioManager';
-import { ballGeometry, ballMaterial } from './materials';
+import { createBallGeometry, createBallMaterial } from './materials';
 
 interface BallProps {
   latestRef: MutableRefObject<GameSnapshot | null>;
@@ -11,6 +11,8 @@ interface BallProps {
 
 export const Ball = memo(function Ball({ latestRef }: BallProps) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const geometry = useMemo(() => createBallGeometry(), []);
+  const material = useMemo(() => createBallMaterial(), []);
   const targetPos = useRef(new THREE.Vector3(0, BALL_RADIUS, 0));
   const targetVel = useRef(new THREE.Vector3(0, 0, 0));
   const lastTickRef = useRef<number>(-1);
@@ -101,8 +103,8 @@ export const Ball = memo(function Ball({ latestRef }: BallProps) {
     <>
       <mesh
         ref={meshRef}
-        geometry={ballGeometry}
-        material={ballMaterial}
+        geometry={geometry}
+        material={material}
         castShadow
         position={[0, BALL_RADIUS, 0]}
       />

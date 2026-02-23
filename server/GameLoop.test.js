@@ -13,6 +13,7 @@ describe('GameLoop', () => {
       onTimerUpdate: vi.fn(),
       onGoalScored: vi.fn(),
       broadcastSnapshot: vi.fn(),
+      players: new Map(),
     };
     playerData = {
       p1: 'blue',

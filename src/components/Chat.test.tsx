@@ -23,7 +23,7 @@ describe('Chat Component', () => {
       // Find the handler and call it
       const handler = (
         socket.on as unknown as { mock: { calls: unknown[][] } }
-      ).mock.calls.find((call) => call[0] === 'chat-message')?.[1] as (
+      ).mock.calls.find((call) => call[0] === 'chat_message')?.[1] as (
         msg: unknown
       ) => void;
       handler({
@@ -70,7 +70,7 @@ describe('Chat Component', () => {
     act(() => {
       const handler = (
         socket.on as unknown as { mock: { calls: unknown[][] } }
-      ).mock.calls.find((call) => call[0] === 'chat-message')?.[1] as (
+      ).mock.calls.find((call) => call[0] === 'chat_message')?.[1] as (
         msg: unknown
       ) => void;
       handler({

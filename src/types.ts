@@ -21,6 +21,7 @@ export interface PlayerInfo {
   nickname: string;
   team: Team;
   isHost: boolean;
+  equippedAccessories?: string[];
 }
 
 export type PowerUpType = 'magnet' | 'freeze' | 'rocket' | 'frozen';
@@ -41,6 +42,7 @@ export interface PlayerState {
     type: PowerUpType;
     timeLeft: number;
   };
+  equippedAccessories?: string[];
 }
 
 export interface BallState {
@@ -122,6 +124,9 @@ export interface ClientToServerEvents {
   'player-input': (data: PlayerInput) => void;
   'send-chat-message': (data: { text: string }) => void;
   'leave-room': () => void;
+  'ping-check': (cb: () => void) => void;
+  'kick-player': (data: { targetId: string }) => void;
+  'update-accessories': (data: { accessories: string[] }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -139,9 +144,41 @@ export interface ServerToClientEvents {
   }) => void;
   'player-joined': (data: { nickname: string; team: Team }) => void;
   'player-left': (data: { nickname: string }) => void;
-  'chat-message': (message: ChatMessage) => void;
+  chat_message: (message: ChatMessage) => void;
   'room-destroyed': () => void;
+  kicked: () => void;
+  'item-unlocked': (data: { id: string }) => void;
   error: (data: { message: string }) => void;
+}
+
+// ============================================================
+// Database & Profile Types (Supabase)
+// ============================================================
+
+export interface Profile {
+  id: string;
+  nickname: string | null;
+  avatar_url: string | null;
+  xp: number;
+  level: number;
+}
+
+export interface Accessory {
+  id: string;
+  name: string;
+  category: 'ball_skin' | 'trail' | 'hat' | 'aura' | 'decal';
+  preview_url: string | null;
+  price: number;
+  stripe_price_id?: string | null;
+  // Included for Shop UI state
+  isOwned?: boolean;
+  is_equipped?: boolean;
+}
+
+export interface UserAccessory {
+  user_id: string;
+  accessory_id: string;
+  is_equipped: boolean;
 }
 
 // Game constants

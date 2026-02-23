@@ -25,9 +25,9 @@ export default function Chat({ isGameOverlay = false }: ChatProps) {
       setIsVisible(true);
     };
 
-    socket.on('chat-message', handleMessage);
+    socket.on('chat_message', handleMessage);
     return () => {
-      socket.off('chat-message', handleMessage);
+      socket.off('chat_message', handleMessage);
     };
   }, []);
 
