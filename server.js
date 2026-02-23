@@ -155,7 +155,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       payment_method_types: ['card'],
       line_items: [{ price: finalPriceId, quantity: 1 }],
       mode: 'payment',
-      success_url: `${req.headers.origin}/?purchase=success`,
+      success_url: `${req.headers.origin}/?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.origin}/?purchase=cancel`,
       metadata: { userId, accessoryId },
     });
@@ -163,6 +163,84 @@ app.post('/api/create-checkout-session', async (req, res) => {
     res.json({ url: session.url });
   } catch (err) {
     console.error('[STRIPE] Checkout failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Stripe: Confirm Checkout Session (fallback when webhook is missing)
+app.post('/api/confirm-checkout-session', async (req, res) => {
+  const { accessToken, sessionId } = req.body;
+
+  try {
+    if (!accessToken) {
+      return res.status(401).json({ error: 'Missing accessToken' });
+    }
+
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Missing sessionId' });
+    }
+
+    const decoded = verifySupabaseToken(accessToken);
+    const userId = decoded.sub;
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Checkout session not found' });
+    }
+
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({
+        error: `Checkout session not paid (status=${session.payment_status})`,
+      });
+    }
+
+    const sessionUserId = session.metadata?.userId;
+    const accessoryId = session.metadata?.accessoryId;
+
+    if (!sessionUserId || !accessoryId) {
+      return res.status(400).json({
+        error:
+          'Checkout session is missing required metadata (userId/accessoryId)',
+      });
+    }
+
+    if (sessionUserId !== userId) {
+      return res.status(403).json({ error: 'Session user mismatch' });
+    }
+
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from('user_accessories')
+      .select('user_id, accessory_id')
+      .eq('user_id', userId)
+      .eq('accessory_id', accessoryId)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+
+    if (!existing) {
+      const { error: insertError } = await supabaseAdmin
+        .from('user_accessories')
+        .insert({
+          user_id: userId,
+          accessory_id: accessoryId,
+          is_equipped: false,
+        });
+
+      if (insertError) throw insertError;
+    }
+
+    // Notify player via Socket if connected
+    for (const [id, socket] of io.sockets.sockets) {
+      if (socket.user?.id === userId) {
+        socket.emit('item-unlocked', { id: accessoryId });
+        console.log(`[STRIPE] Notified socket ${id} of unlock (confirm)`);
+      }
+    }
+
+    res.json({ ok: true, accessoryId, alreadyOwned: Boolean(existing) });
+  } catch (err) {
+    console.error('[STRIPE] Confirm checkout failed:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

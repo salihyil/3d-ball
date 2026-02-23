@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Accessory, Profile } from '../types';
 import { useAuth } from './useAuth';
+import { socket } from './useNetwork';
 
 export function usePlayerProfile() {
   const { user } = useAuth();
@@ -92,6 +93,20 @@ export function usePlayerProfile() {
   useEffect(() => {
     fetchProfileData();
   }, [fetchProfileData]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const handleItemUnlocked = () => {
+      fetchProfileData();
+    };
+
+    socket.on('item-unlocked', handleItemUnlocked);
+
+    return () => {
+      socket.off('item-unlocked', handleItemUnlocked);
+    };
+  }, [user, fetchProfileData]);
 
   const updateNickname = async (newNickname: string) => {
     if (!user) return;

@@ -6,6 +6,7 @@ import LanguageSelector from '../components/LanguageSelector';
 import { AvatarModal } from '../components/Profile/AvatarModal';
 import { useAuth } from '../hooks/useAuth';
 import { socket } from '../hooks/useNetwork';
+import { supabase } from '../lib/supabase';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -20,16 +21,75 @@ export default function Home() {
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(globalThis.location.search);
+    const purchase = params.get('purchase');
+    const sessionId = params.get('session_id');
+
+    if (purchase !== 'success' || !sessionId) return;
+
+    let isCancelled = false;
+
+    const confirmPurchase = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) return;
+
+      try {
+        const response = await fetch('/api/confirm-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accessToken: session.access_token,
+            sessionId,
+          }),
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.error || 'Purchase confirmation failed');
+        }
+
+        if (isCancelled) return;
+
+        alert(t('profile.purchase_success', 'Purchase confirmed!'));
+        setIsAvatarModalOpen(true);
+      } catch (err) {
+        console.error('Purchase confirmation failed:', err);
+      } finally {
+        // Clean URL so refresh doesn't re-confirm
+        params.delete('purchase');
+        params.delete('session_id');
+        const nextQuery = params.toString();
+        globalThis.history.replaceState(
+          null,
+          '',
+          nextQuery ? `/?${nextQuery}` : '/'
+        );
+      }
+    };
+
+    confirmPurchase();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [t]);
+
+  useEffect(() => {
     if (user?.email) {
       // If user is logged in and has no nickname set yet, try to use email prefix or metadata
       const savedNickname = sessionStorage.getItem('bb-nickname');
-      if (!savedNickname) {
-        const defaultNickname =
-          user.user_metadata?.full_name || user.email.split('@')[0];
-        setNickname(defaultNickname.substring(0, 16));
-      } else {
+      if (savedNickname) {
         setNickname(savedNickname);
+        return;
       }
+
+      const defaultNickname =
+        user.user_metadata?.full_name || user.email.split('@')[0];
+      setNickname(defaultNickname.substring(0, 16));
     }
   }, [user]);
 
