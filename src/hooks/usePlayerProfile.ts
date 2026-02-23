@@ -104,48 +104,65 @@ export function usePlayerProfile() {
     setProfile((prev) => (prev ? { ...prev, nickname: newNickname } : null));
   };
 
-  const equipAccessory = async (accessoryId: string, category: string) => {
+  const toggleAccessory = async (accessoryId: string, category: string) => {
     if (!user) return;
 
+    const accessory = accessories.find((a) => a.id === accessoryId);
+    if (!accessory) return;
+
+    const isCurrentlyEquipped = accessory.is_equipped;
+
     try {
-      // 1. Unequip others in the same category
-      // This is a bit complex in Supabase without a stored procedure,
-      // but we can do it by finding IDs and then updating.
-      // For simplicity in this phase, we target the specific user_accessories.
-
-      // Get all owned accessories of that category to unequip them
-      const categoryAccIds = accessories
-        .filter((a) => a.category === category)
-        .map((a) => a.id);
-
-      if (categoryAccIds.length > 0) {
-        await supabase
+      if (isCurrentlyEquipped) {
+        // Unequip this specific one
+        const { error } = await supabase
           .from('user_accessories')
           .update({ is_equipped: false })
           .eq('user_id', user.id)
-          .in('accessory_id', categoryAccIds);
+          .eq('accessory_id', accessoryId);
+
+        if (error) throw error;
+
+        setAccessories((prev) =>
+          prev.map((a) =>
+            a.id === accessoryId ? { ...a, is_equipped: false } : a
+          )
+        );
+      } else {
+        // 1. Unequip ALL others in the same category
+        const categoryAccIds = accessories
+          .filter((a) => a.category === category)
+          .map((a) => a.id);
+
+        if (categoryAccIds.length > 0) {
+          await supabase
+            .from('user_accessories')
+            .update({ is_equipped: false })
+            .eq('user_id', user.id)
+            .in('accessory_id', categoryAccIds);
+        }
+
+        // 2. Equip the new one
+        const { error } = await supabase
+          .from('user_accessories')
+          .update({ is_equipped: true })
+          .eq('user_id', user.id)
+          .eq('accessory_id', accessoryId);
+
+        if (error) throw error;
+
+        // 3. Update local state
+        setAccessories((prev) =>
+          prev.map((a) => {
+            if (a.id === accessoryId) return { ...a, is_equipped: true };
+            if (categoryAccIds.includes(a.id))
+              return { ...a, is_equipped: false };
+            return a;
+          })
+        );
       }
-
-      // 2. Equip the new one
-      const { error } = await supabase
-        .from('user_accessories')
-        .update({ is_equipped: true })
-        .eq('user_id', user.id)
-        .eq('accessory_id', accessoryId);
-
-      if (error) throw error;
-
-      // 3. Update local state
-      setAccessories((prev) =>
-        prev.map((a) => {
-          if (a.id === accessoryId) return { ...a, is_equipped: true };
-          if (categoryAccIds.includes(a.id))
-            return { ...a, is_equipped: false };
-          return a;
-        })
-      );
     } catch (err: unknown) {
-      console.error('Error equipping accessory:', err);
+      console.error('Error toggling accessory:', err);
       throw err;
     }
   };
@@ -156,7 +173,7 @@ export function usePlayerProfile() {
     loading,
     error,
     updateNickname,
-    equipAccessory,
+    toggleAccessory,
     refreshProfile: fetchProfileData,
   };
 }

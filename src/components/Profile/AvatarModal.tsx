@@ -26,19 +26,29 @@ export const AvatarModal = memo(function AvatarModal({
   isOpen,
   onClose,
 }: AvatarModalProps) {
-  const { accessories, loading, equipAccessory } = usePlayerProfile();
+  const { accessories, loading, toggleAccessory } = usePlayerProfile();
 
   if (!isOpen) return null;
 
   const handleEquip = async (id: string, category: string) => {
     try {
-      await equipAccessory(id, category);
+      const accessory = accessories.find((a) => a.id === id);
+      if (!accessory) return;
 
-      // Construct the next list of IDs to emit immediately
+      const isEquipping = !accessory.is_equipped;
+
+      await toggleAccessory(id, category);
+
+      // Construct the next list of IDs to emit immediately for lobby sync
       const nextIds = accessories
         .map((a) => {
           if (a.category === category) {
-            return a.id === id ? a.id : null;
+            // If we are equipping this item, it's the only one in the cat.
+            // If we are unequipping it, the cat will be empty.
+            if (isEquipping) {
+              return a.id === id ? a.id : null;
+            }
+            return null;
           }
           return a.is_equipped ? a.id : null;
         })
@@ -46,7 +56,7 @@ export const AvatarModal = memo(function AvatarModal({
 
       socket.emit('update-accessories', { accessories: nextIds });
     } catch (err) {
-      console.error('Failed to equip:', err);
+      console.error('Failed to toggle accessory:', err);
     }
   };
 

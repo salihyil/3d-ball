@@ -315,10 +315,12 @@ io.on('connection', (socket) => {
     room.hostToken = hostToken;
     rooms.set(roomId, room);
 
-    // Use socket.user data instead of just data.nickname
+    // Update socket user nickname for this session
+    socket.user.nickname = nickname.trim();
+
     room.addPlayer(
       socket,
-      socket.user.nickname,
+      nickname.trim(),
       true,
       socket.user.equippedAccessories
     );
@@ -361,9 +363,12 @@ io.on('connection', (socket) => {
     // Check if this player is the returning host
     const returningHost = data.hostToken && data.hostToken === room.hostToken;
 
+    // Update socket user nickname for this session
+    socket.user.nickname = nickname.trim();
+
     room.addPlayer(
       socket,
-      socket.user.nickname,
+      nickname.trim(),
       returningHost,
       socket.user.equippedAccessories
     );

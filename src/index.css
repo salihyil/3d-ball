@@ -1929,6 +1929,18 @@ h1 {
   box-shadow: 0 0 30px var(--accent);
 }
 
+.accessory-card.locked {
+  opacity: 0.6;
+  filter: grayscale(0.8);
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.accessory-card.locked:hover {
+  transform: none;
+  background: rgba(255, 255, 255, 0.02);
+}
+
 .accessory-card-inner {
   position: relative;
   z-index: 1;
@@ -1937,12 +1949,13 @@ h1 {
 .equipped-badge-glow {
   background: var(--accent);
   color: white;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 900;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 1px 5px;
+  border-radius: 2px;
   box-shadow: 0 0 10px var(--accent);
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -12px;
+  right: -5px;
+  letter-spacing: 1px;
 }

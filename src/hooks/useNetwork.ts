@@ -76,7 +76,7 @@ export function useSocketManager(
       // Guest Mode
       socket.auth = {
         token: null,
-        nickname: localStorage.getItem('guest_nickname') || undefined,
+        nickname: sessionStorage.getItem('bb-nickname') || undefined,
         equippedAccessories: [],
       };
     }
