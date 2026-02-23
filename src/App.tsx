@@ -9,9 +9,9 @@ const Lobby = lazy(() => import('./pages/Lobby'));
 const Game = lazy(() => import('./pages/Game'));
 
 function SocketSync() {
-  const { session } = useAuth();
-  const { profile, accessories } = usePlayerProfile();
-  useSocketManager(session, profile, accessories);
+  const { session, loading: authLoading } = useAuth();
+  const { profile, accessories, loading: profileLoading } = usePlayerProfile();
+  useSocketManager(session, profile, accessories, authLoading, profileLoading);
   return null;
 }
 

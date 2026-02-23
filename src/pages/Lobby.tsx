@@ -143,7 +143,7 @@ export default function Lobby() {
       (p) => p.id === socket.id || p.sessionId === socket.user?.sessionId
     );
     return !!self?.isHost;
-  }, [room?.players, socket.id, socket.user?.sessionId]);
+  }, [room?.players]);
 
   const handleTextureSelect = useCallback(
     (url: string) => {

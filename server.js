@@ -629,9 +629,14 @@ io.on('connection', (socket) => {
       return callback({ success: false, error: 'Room not found' });
     }
 
-    // If player is already in this room (e.g. creator navigated to lobby)
-    if (room.hasPlayer(socket.id)) {
+    // If player is already in this room (prevent duplicates with same session)
+    const existingPlayer = room.getPlayerBySessionId(socket.user.sessionId);
+    if (existingPlayer) {
+      if (existingPlayer.socketId !== socket.id) {
+        room._performSocketSwap(existingPlayer, socket);
+      }
       currentRoomId = roomId;
+      socket.join(roomId);
       // If they have the host token, make sure they are host (re-claim if needed)
       if (data.hostToken && data.hostToken === room.hostToken) {
         room.reclaimHost(socket.id);

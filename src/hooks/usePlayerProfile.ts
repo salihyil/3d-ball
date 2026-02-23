@@ -14,7 +14,11 @@ export function usePlayerProfile() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchProfileData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      setError(null);
+      return;
+    }
 
     setLoading(true);
     setError(null);
