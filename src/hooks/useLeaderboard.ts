@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 
-export function useLeaderboard() {
+export function useLeaderboard(isOpen: boolean = true) {
   const [leaderboard, setLeaderboard] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLeaderboard = useCallback(async () => {
+    if (!isOpen) return;
     setLoading(true);
     setError(null);
     try {
@@ -28,11 +29,13 @@ export function useLeaderboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+    if (isOpen) {
+      fetchLeaderboard();
+    }
+  }, [fetchLeaderboard, isOpen]);
 
   return { leaderboard, loading, error, refreshLeaderboard: fetchLeaderboard };
 }

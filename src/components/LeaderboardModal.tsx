@@ -12,7 +12,8 @@ export const LeaderboardModal = memo(function LeaderboardModal({
   onClose,
 }: LeaderboardModalProps) {
   const { t } = useTranslation();
-  const { leaderboard, loading, error, refreshLeaderboard } = useLeaderboard();
+  const { leaderboard, loading, error, refreshLeaderboard } =
+    useLeaderboard(isOpen);
 
   if (!isOpen) return null;
 
