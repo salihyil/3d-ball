@@ -106,5 +106,13 @@
       "goal_explosion": "Goal Explosions",
       "player_title": "Player Titles"
     }
+  },
+  "leaderboard": {
+    "title": "Bestenliste",
+    "player": "Spieler",
+    "wins": "Siege",
+    "goals": "Tore",
+    "matches": "Spiele",
+    "empty": "Noch keine Spieldaten."
   }
 }

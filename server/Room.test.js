@@ -1,4 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('./config/supabase.js', () => ({
+  supabaseAdmin: {
+    from: vi.fn(),
+  },
+}));
+
 import { Room } from './Room.js';
 
 describe('Room', () => {

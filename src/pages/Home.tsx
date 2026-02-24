@@ -3,9 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AuthModal from '../components/Auth/AuthModal';
 import LanguageSelector from '../components/LanguageSelector';
+import { LeaderboardModal } from '../components/LeaderboardModal';
+import { AccountSettingsModal } from '../components/Profile/AccountSettingsModal';
 import { AvatarModal } from '../components/Profile/AvatarModal';
 import { useAuth } from '../hooks/useAuth';
 import { socket } from '../hooks/useNetwork';
+import { usePlayerProfile } from '../hooks/usePlayerProfile';
 import { supabase } from '../lib/supabase';
 
 export default function Home() {
@@ -13,6 +16,7 @@ export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { profile } = usePlayerProfile();
   const [nickname, setNickname] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [matchDuration, setMatchDuration] = useState(5);
@@ -20,6 +24,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const processedSessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -85,18 +91,25 @@ export default function Home() {
 
   useEffect(() => {
     if (user?.email) {
-      // If user is logged in and has no nickname set yet, try to use email prefix or metadata
-      const savedNickname = sessionStorage.getItem('bb-nickname');
-      if (savedNickname) {
-        setNickname(savedNickname);
+      if (profile?.nickname) {
+        setNickname(profile.nickname);
         return;
       }
 
       const defaultNickname =
-        user.user_metadata?.full_name || user.email.split('@')[0];
+        user.user_metadata?.nickname ||
+        user.user_metadata?.full_name ||
+        user.email.split('@')[0];
       setNickname(defaultNickname.substring(0, 16));
+    } else {
+      const savedNickname = sessionStorage.getItem('bb-nickname');
+      if (savedNickname) {
+        setNickname(savedNickname);
+      } else {
+        setNickname('');
+      }
     }
-  }, [user]);
+  }, [user, profile]);
 
   const handleCreate = useCallback(() => {
     if (!nickname.trim()) {
@@ -183,6 +196,19 @@ export default function Home() {
               {user.email}
             </span>
             <button
+              className="btn btn-outline"
+              style={{
+                padding: '4px 12px',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              onClick={() => setIsAccountSettingsOpen(true)}
+            >
+              ⚙️ {t('profile.settings', 'Settings')}
+            </button>
+            <button
               className="btn btn-primary"
               style={{
                 padding: '4px 16px',
@@ -219,8 +245,23 @@ export default function Home() {
           top: '24px',
           right: '24px',
           zIndex: 1000,
+          display: 'flex',
+          gap: '12px',
+          alignItems: 'center',
         }}
       >
+        <button
+          className="btn btn-outline"
+          style={{
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+          onClick={() => setIsLeaderboardOpen(true)}
+        >
+          🏆 {t('leaderboard.title', 'Leaderboard')}
+        </button>
         <LanguageSelector />
       </div>
 
@@ -229,9 +270,19 @@ export default function Home() {
         onClose={() => setIsAuthModalOpen(false)}
       />
 
+      <AccountSettingsModal
+        isOpen={isAccountSettingsOpen}
+        onClose={() => setIsAccountSettingsOpen(false)}
+      />
+
       <AvatarModal
         isOpen={isAvatarModalOpen}
         onClose={() => setIsAvatarModalOpen(false)}
+      />
+
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
       />
 
       <div className="page-center">
@@ -246,21 +297,23 @@ export default function Home() {
             style={{ padding: '32px' }}
           >
             <div className="home-form">
-              <div>
-                <label className="label">{t('home.nickname_label')}</label>
-                <input
-                  data-testid="nickname-input"
-                  className="input"
-                  type="text"
-                  placeholder={t('home.nickname_placeholder')}
-                  maxLength={16}
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleCreate();
-                  }}
-                />
-              </div>
+              {!user && (
+                <div>
+                  <label className="label">{t('home.nickname_label')}</label>
+                  <input
+                    data-testid="nickname-input"
+                    className="input"
+                    type="text"
+                    placeholder={t('home.nickname_placeholder')}
+                    maxLength={16}
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCreate();
+                    }}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="label">{t('home.duration_label')}</label>

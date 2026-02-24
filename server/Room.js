@@ -3,6 +3,7 @@
 // ============================================================
 
 import { GameLoop } from './GameLoop.js';
+import { supabaseAdmin } from './config/supabase.js';
 
 const MAX_PLAYERS_PER_TEAM = 5;
 const COUNTDOWN_SECONDS = 3;
@@ -66,6 +67,7 @@ export class Room {
       title: cosmetics.title || null,
       nameColor: cosmetics.nameColor || null,
       goalExplosion: cosmetics.goalExplosion || null,
+      goals: 0,
     };
     this.players.set(socket.id, player);
 
@@ -270,6 +272,7 @@ export class Room {
     this.score[team]++;
     const scorer = this.players.get(scorerId);
     const scorerName = scorer ? scorer.nickname : 'Unknown';
+    if (scorer) scorer.goals++;
 
     this.gameState = 'goalScored';
 
@@ -316,6 +319,19 @@ export class Room {
           ? 'red'
           : 'draw';
 
+    // Update match stats for authenticated users
+    for (const [socketId, player] of this.players) {
+      if (!player.id || player.id.startsWith('guest-')) continue;
+      const won = player.team === winner;
+      const goals = player.goals || 0;
+      this._updatePlayerStats(player.id, won, goals).catch((err) => {
+        console.error(
+          `[ROOM] Failed to update stats for ${player.nickname}`,
+          err
+        );
+      });
+    }
+
     this.io.to(this.roomId).emit('game-ended', {
       score: { ...this.score },
       winner,
@@ -326,6 +342,29 @@ export class Room {
       this.gameState = 'lobby';
       this.io.to(this.roomId).emit('room-update', this.getRoomInfo());
     }, 5000);
+  }
+
+  async _updatePlayerStats(userId, won, goals) {
+    try {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('wins, goals, matches_played')
+        .eq('id', userId)
+        .single();
+
+      if (profile) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({
+            wins: profile.wins + (won ? 1 : 0),
+            goals: profile.goals + goals,
+            matches_played: profile.matches_played + 1,
+          })
+          .eq('id', userId);
+      }
+    } catch (err) {
+      console.error('[ROOM] Error updating player stats', err);
+    }
   }
 
   // ---- Queries ----

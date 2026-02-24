@@ -106,5 +106,13 @@
       "goal_explosion": "Goal Explosions",
       "player_title": "Player Titles"
     }
+  },
+  "leaderboard": {
+    "title": "Classement",
+    "player": "Joueur",
+    "wins": "Victoires",
+    "goals": "Buts",
+    "matches": "Matchs",
+    "empty": "Aucune donnée pour le moment."
   }
 }

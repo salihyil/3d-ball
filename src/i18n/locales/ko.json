@@ -106,5 +106,13 @@
       "goal_explosion": "Goal Explosions",
       "player_title": "Player Titles"
     }
+  },
+  "leaderboard": {
+    "title": "리더보드",
+    "player": "플레이어",
+    "wins": "승리",
+    "goals": "골",
+    "matches": "경기",
+    "empty": "아직 데이터가 없습니다."
   }
 }

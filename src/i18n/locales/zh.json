@@ -106,5 +106,13 @@
       "goal_explosion": "Goal Explosions",
       "player_title": "Player Titles"
     }
+  },
+  "leaderboard": {
+    "title": "排行榜",
+    "player": "玩家",
+    "wins": "胜场",
+    "goals": "进球",
+    "matches": "比赛",
+    "empty": "暂无数据"
   }
 }

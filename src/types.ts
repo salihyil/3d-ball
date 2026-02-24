@@ -180,6 +180,9 @@ export interface Profile {
   xp: number;
   level: number;
   brawl_coins: number;
+  wins: number;
+  goals: number;
+  matches_played: number;
 }
 
 export interface Accessory {

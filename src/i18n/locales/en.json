@@ -108,5 +108,13 @@
       "goal_explosion": "Goal Explosions",
       "player_title": "Player Titles"
     }
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "player": "Player",
+    "wins": "Wins",
+    "goals": "Goals",
+    "matches": "Matches",
+    "empty": "No match data yet."
   }
 }

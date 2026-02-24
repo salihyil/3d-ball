@@ -106,5 +106,13 @@
       "goal_explosion": "Goal Explosions",
       "player_title": "Player Titles"
     }
+  },
+  "leaderboard": {
+    "title": "リーダーボード",
+    "player": "プレイヤー",
+    "wins": "勝利",
+    "goals": "ゴール",
+    "matches": "試合",
+    "empty": "まだデータがありません。"
   }
 }

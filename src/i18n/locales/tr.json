@@ -108,5 +108,13 @@
       "goal_explosion": "Gol Patlamaları",
       "player_title": "Oyuncu Ünvanları"
     }
+  },
+  "leaderboard": {
+    "title": "Liderlik Tablosu",
+    "player": "Oyuncu",
+    "wins": "Galibiyet",
+    "goals": "Gol",
+    "matches": "Maç",
+    "empty": "Henüz maç verisi yok."
   }
 }

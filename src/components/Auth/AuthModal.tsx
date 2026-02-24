@@ -11,6 +11,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nickname, setNickname] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { signInWithGoogle } = useAuth();
@@ -33,6 +34,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              nickname: nickname || null,
+            },
+          },
         });
         if (error) throw error;
         alert(
@@ -76,6 +82,19 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         )}
 
         <form onSubmit={handleSubmit} className="home-form">
+          {!isLogin && (
+            <div>
+              <label className="label">Nickname</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Brawler"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                required
+              />
+            </div>
+          )}
           <div>
             <label className="label">Email</label>
             <input
