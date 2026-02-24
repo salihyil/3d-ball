@@ -51,7 +51,8 @@
     "connecting": "Verbindung zum Raum wird hergestellt...",
     "kick_btn": "Kicken",
     "kicked_title": "Rausgeworfen",
-    "kicked_desc": "Du wurdest vom Host aus dem Raum geworfen."
+    "kicked_desc": "Du wurdest vom Host aus dem Raum geworfen.",
+    "add_bot": "Bot hinzufügen"
   },
   "game": {
     "kph": "KM/H",

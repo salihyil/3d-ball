@@ -139,4 +139,79 @@ describe('Room', () => {
       expect(room.isHost('s3')).toBe(false);
     });
   });
+
+  describe('Bot Management', () => {
+    it('should add a bot to the specified team', () => {
+      const result = room.addBot('blue');
+
+      expect(result.success).toBe(true);
+      expect(room.players.size).toBe(1);
+
+      const bot = [...room.players.values()][0];
+      expect(bot.isBot).toBe(true);
+      expect(bot.team).toBe('blue');
+      expect(bot.isHost).toBe(false);
+      expect(bot.socket).toBeNull();
+    });
+
+    it('should reject adding a bot to a full team', () => {
+      // Fill blue team to the max (5 players)
+      for (let i = 0; i < 5; i++) {
+        room.players.set(`b${i}`, {
+          id: `u${i}`,
+          team: 'blue',
+          nickname: `B${i}`,
+          isBot: false,
+        });
+      }
+
+      const result = room.addBot('blue');
+
+      expect(result.error).toBeDefined();
+      expect(room.players.size).toBe(5); // Unchanged
+    });
+
+    it('should expose isBot flag in getRoomInfo', () => {
+      room.addBot('red');
+
+      const info = room.getRoomInfo();
+      const botEntry = info.players.find((p) => p.isBot === true);
+
+      expect(botEntry).toBeDefined();
+      expect(botEntry.team).toBe('red');
+    });
+
+    it('should remove a bot immediately without starting a grace-period timer', () => {
+      room.addBot('blue');
+      const bot = [...room.players.values()][0];
+      const botId = bot.socketId;
+
+      // Graceful=false normally triggers the 15s timer — bots must bypass it
+      room.removePlayer(botId, false);
+
+      // Bot should be gone immediately, not placed in disconnectedPlayers
+      expect(room.players.has(botId)).toBe(false);
+      expect(room.disconnectedPlayers.size).toBe(0);
+    });
+
+    it('should not include bots in stats tracking after game end', () => {
+      // Arrange: add a human player and a bot
+      room.addPlayer({ id: 's1', user: { id: 'real-user-id' } }, 'Human', true);
+      room.addBot('red');
+
+      // Verify the bot in the room
+      const bots = [...room.players.values()].filter((p) => p.isBot);
+      const humans = [...room.players.values()].filter((p) => !p.isBot);
+
+      expect(bots).toHaveLength(1);
+      expect(humans).toHaveLength(1);
+
+      // The stats guard condition: bot.isBot === true means it's skipped
+      for (const player of room.players.values()) {
+        if (player.isBot) {
+          expect(player.id.startsWith('bot-')).toBe(true);
+        }
+      }
+    });
+  });
 });

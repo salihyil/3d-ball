@@ -77,9 +77,46 @@ export class Room {
     this.lastActivity = Date.now();
   }
 
+  addBot(team) {
+    if (this.getTeamCount(team) >= MAX_PLAYERS_PER_TEAM) {
+      return { error: 'Team is full (5/5 players)' };
+    }
+
+    const botId = `bot-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const nickname = `Bot ${Math.floor(Math.random() * 99) + 1}`;
+
+    const player = {
+      id: botId,
+      socketId: botId,
+      sessionId: botId,
+      nickname,
+      team,
+      isHost: false,
+      isBot: true,
+      socket: null,
+      equippedAccessories: [],
+      goals: 0,
+    };
+
+    this.players.set(botId, player);
+
+    if (this.gameLoop && this.gameState !== 'lobby') {
+      this.gameLoop.addPlayer(botId, team, true);
+    }
+
+    this.lastActivity = Date.now();
+    return { success: true };
+  }
+
   removePlayer(socketId, isGraceful = false) {
     const player = this.players.get(socketId);
     if (!player) return;
+
+    // Bots have no real socket connection — skip grace period, remove immediately
+    if (!isGraceful && player.isBot) {
+      this._finalRemovePlayer(socketId);
+      return;
+    }
 
     if (!isGraceful && player.sessionId) {
       const gracePeriod = process.env.NODE_ENV === 'test' ? 2000 : 15000;
@@ -236,7 +273,7 @@ export class Room {
     // Create game loop with player data
     const playerData = {};
     for (const [id, p] of this.players.entries()) {
-      playerData[id] = p.team;
+      playerData[id] = { team: p.team, isBot: p.isBot };
     }
 
     this.gameLoop = new GameLoop(this, playerData, this.enableFeatures);
@@ -321,7 +358,8 @@ export class Room {
 
     // Update match stats for authenticated users
     for (const [socketId, player] of this.players) {
-      if (!player.id || player.id.startsWith('guest-')) continue;
+      if (player.isBot || !player.id || player.id.startsWith('guest-'))
+        continue;
       const won = player.team === winner;
       const goals = player.goals || 0;
       this._updatePlayerStats(player.id, won, goals).catch((err) => {
@@ -395,6 +433,7 @@ export class Room {
         isDisconnected,
         title: p.title || undefined,
         nameColor: p.nameColor || undefined,
+        isBot: p.isBot || false,
       });
     }
     return {

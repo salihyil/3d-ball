@@ -51,7 +51,8 @@
     "connecting": "Connexion à la salle...",
     "kick_btn": "Exclure",
     "kicked_title": "Vous avez été exclu",
-    "kicked_desc": "L'hôte vous a exclu de la salle."
+    "kicked_desc": "L'hôte vous a exclu de la salle.",
+    "add_bot": "Ajouter un Bot"
   },
   "game": {
     "kph": "KM/H",

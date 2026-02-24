@@ -57,10 +57,12 @@ export class GameLoop {
     // Initialize players at spawn positions
     const blueTeam = [];
     const redTeam = [];
+    this.isBotMap = {};
 
-    for (const [id, teamName] of Object.entries(playerData)) {
-      if (teamName === 'blue') blueTeam.push(id);
+    for (const [id, data] of Object.entries(playerData)) {
+      if (data.team === 'blue') blueTeam.push(id);
       else redTeam.push(id);
+      this.isBotMap[id] = !!data.isBot;
     }
 
     this._spawnPlayers(blueTeam, 'blue');
@@ -110,8 +112,13 @@ export class GameLoop {
         position: { x: xBase, y: PLAYER_RADIUS, z: zOffset },
         velocity: { x: 0, y: 0, z: 0 },
         team,
+        isBot: this.isBotMap ? this.isBotMap[ids[i]] : false,
         boostRemaining: 0,
         boostCooldown: 0,
+        aiState:
+          this.isBotMap && this.isBotMap[ids[i]]
+            ? { wanderTarget: null, wanderExpiry: 0 }
+            : null,
       };
       this.inputs[ids[i]] = { dx: 0, dz: 0, boost: false, jump: false, seq: 0 };
     }
@@ -154,8 +161,12 @@ export class GameLoop {
     delete this.inputs[socketId];
   }
 
-  addPlayer(socketId, team) {
+  addPlayer(socketId, team, isBot = false) {
     if (this.players[socketId]) return;
+
+    if (this.isBotMap) {
+      this.isBotMap[socketId] = isBot;
+    }
 
     const isBlue = team === 'blue';
     // Position late-joiners roughly near their goal so they don't spawn on top of active play
@@ -165,8 +176,10 @@ export class GameLoop {
       position: { x: isBlue ? -25 : 25, y: 0.5, z: zOffset },
       velocity: { x: 0, y: 0, z: 0 },
       team,
+      isBot,
       boostRemaining: 0,
       boostCooldown: 0,
+      aiState: isBot ? { wanderTarget: null, wanderExpiry: 0 } : null,
     };
     this.inputs[socketId] = { dx: 0, dz: 0, boost: false, jump: false, seq: 0 };
   }
@@ -274,13 +287,16 @@ export class GameLoop {
       }
     }
 
-    // 1. Apply player inputs
+    // 1. Compute Bot Inputs
+    this._updateBots();
+
+    // 2. Apply player inputs
     this._updatePlayers();
 
-    // 2. Update ball physics
+    // 3. Update ball physics
     this._updateBall();
 
-    // 3. Check collisions
+    // 4. Check collisions
     this._checkPlayerBallCollisions();
     this._checkPlayerPlayerCollisions();
     this._checkPlayerPowerUpCollisions();
@@ -288,11 +304,259 @@ export class GameLoop {
       this._checkPlayerBoostPadCollisions();
     }
 
-    // 4. Check goals
+    // 5. Check goals
     this._checkGoals();
 
     // 5. Broadcast snapshot
     this._broadcastSnapshot();
+  }
+
+  _updateBots() {
+    // 1. Group bots by team to determine roles
+    const botsByTeam = { blue: [], red: [] };
+    for (const [id, player] of Object.entries(this.players)) {
+      if (player.isBot) {
+        botsByTeam[player.team].push(id);
+      }
+    }
+
+    // 2. Determine roles for each team
+    const botRoles = {}; // id -> 'chaser' | 'defender' | 'supporter'
+    for (const team of ['blue', 'red']) {
+      const teamBots = botsByTeam[team];
+      if (teamBots.length === 0) continue;
+
+      // Closest bot to ball is the chaser
+      let closestId = null;
+      let minDist = Infinity;
+      const bx = this.ball.position.x;
+      const bz = this.ball.position.z;
+
+      teamBots.forEach((id) => {
+        const p = this.players[id];
+        const dist = Math.sqrt(
+          (p.position.x - bx) ** 2 + (p.position.z - bz) ** 2
+        );
+        if (dist < minDist) {
+          minDist = dist;
+          closestId = id;
+        }
+      });
+
+      teamBots.forEach((id) => {
+        if (id === closestId) {
+          botRoles[id] = 'chaser';
+        } else if (
+          teamBots.length > 1 &&
+          id === teamBots.find((bid) => bid !== closestId)
+        ) {
+          botRoles[id] = 'defender';
+        } else {
+          botRoles[id] = 'supporter';
+        }
+      });
+    }
+
+    // 3. Process each bot's logic
+    for (const [id, player] of Object.entries(this.players)) {
+      if (!player.isBot) continue;
+
+      // Reaction Delay (3-5 ticks)
+      if (
+        player.aiState &&
+        player.aiState.nextActionTick &&
+        this.tick < player.aiState.nextActionTick
+      ) {
+        if (this.inputs[id]) this.inputs[id].seq = this.tick;
+        continue;
+      }
+
+      const bx = this.ball.position.x;
+      const bz = this.ball.position.z;
+      let role = botRoles[id];
+
+      // Variable Targeting (Aim Error - ~1.5 units)
+      const aimOffset = 1.5;
+      const aimX = bx + (Math.random() - 0.5) * aimOffset;
+      const aimZ = bz + (Math.random() - 0.5) * aimOffset;
+
+      // Goals & Boundaries
+      const isBlue = player.team === 'blue';
+      const opponentGoalX = isBlue ? FIELD_WIDTH / 2 : -FIELD_WIDTH / 2;
+      const ownGoalX = isBlue ? -FIELD_WIDTH / 2 : FIELD_WIDTH / 2;
+      const attackDir = isBlue ? 1 : -1;
+
+      // State variables
+      let targetX = aimX;
+      let targetZ = aimZ;
+      let boost = false;
+      let jump = false;
+
+      // Strategy Layer
+      const distToBall = Math.sqrt(
+        (player.position.x - bx) ** 2 + (player.position.z - bz) ** 2
+      );
+      const isBehindBall = isBlue
+        ? player.position.x < bx - 1
+        : player.position.x > bx + 1;
+
+      // Special Behavior: ACTIVE MAGNET
+      if (player.activePowerUp && player.activePowerUp.type === 'magnet') {
+        // Just run straight to the opponent's goal, the ball will follow
+        targetX = opponentGoalX;
+        targetZ = 0;
+        boost = distToBall < 10;
+      } else if (role === 'chaser') {
+        if (!isBehindBall) {
+          // Move to a point behind the ball to line up a shot
+          targetX = aimX - attackDir * 5;
+          targetZ = aimZ;
+        } else {
+          // Attack the ball!
+          // Offset target slightly towards the goal center for a better angle
+          const goalCenterZ = 0;
+          const toGoalX = opponentGoalX - aimX;
+          const toGoalZ = goalCenterZ - aimZ;
+          const toGoalLen = Math.sqrt(toGoalX ** 2 + toGoalZ ** 2);
+
+          // Target a point slightly "behind" the ball relative to the goal
+          targetX = aimX - (toGoalX / toGoalLen) * 1.5;
+          targetZ = aimZ - (toGoalZ / toGoalLen) * 1.5;
+
+          if (distToBall < 5) boost = true;
+        }
+      } else if (role === 'defender') {
+        // Dynamic Defense Line: Push up to midfield when attacking, fall back when defending
+        const ballInOpponentHalf = isBlue ? bx > 0 : bx < 0;
+        const pushUpFactor = ballInOpponentHalf
+          ? Math.abs(bx) / (FIELD_WIDTH / 2)
+          : 0;
+
+        const deepDefenseX = ownGoalX * 0.6; // Not too deep, still allows some space
+        const midfieldX = 0; // Midfield
+
+        targetX = deepDefenseX + (midfieldX - deepDefenseX) * pushUpFactor;
+        targetZ = bz * 0.4; // Follow the ball horizontally but stay central
+
+        // If ball is very close to own goal, rush it!
+        if (Math.abs(bx - ownGoalX) < 15) {
+          targetX = aimX;
+          targetZ = aimZ;
+        } else if (Math.abs(bx - ownGoalX) > 40 && !ballInOpponentHalf) {
+          // Ball is very far in our own half? Unlikely, but if idle, wander
+          role = 'wanderer';
+        }
+      } else {
+        // Supporter: Winger / Forward / Powerup gatherer
+        let closestPU = null;
+        let minPUDist = 15; // Prioritize position, only grab very close powerups
+
+        this.powerUps.forEach((pu) => {
+          const d = Math.sqrt(
+            (pu.position.x - player.position.x) ** 2 +
+              (pu.position.z - player.position.z) ** 2
+          );
+          if (d < minPUDist) {
+            minPUDist = d;
+            closestPU = pu;
+          }
+        });
+
+        if (closestPU) {
+          targetX = closestPU.position.x;
+          targetZ = closestPU.position.z;
+        } else {
+          // Play as winger/forward: Stay slightly behind the ball's X position
+          targetX = bx - attackDir * 12;
+
+          // Spread out: if ball is on the wings, take the center. If ball is center, go to the wings.
+          if (Math.abs(bz) > 8) {
+            targetZ = 0; // Wait in center for a cross
+          } else {
+            // Ball is center, fan out to an open side
+            targetZ = player.position.z > 0 ? 10 : -10;
+          }
+        }
+      }
+
+      // WANDER LOGIC (Exploration)
+      if (role === 'wanderer') {
+        if (!player.aiState.wanderTarget || player.aiState.wanderExpiry <= 0) {
+          // Pick a random point on the field
+          player.aiState.wanderTarget = {
+            x: (Math.random() - 0.5) * FIELD_WIDTH * 0.8,
+            z: (Math.random() - 0.5) * FIELD_HEIGHT * 0.8,
+          };
+          player.aiState.wanderExpiry = 2 + Math.random() * 3; // 2-5 seconds
+        }
+
+        targetX = player.aiState.wanderTarget.x;
+        targetZ = player.aiState.wanderTarget.z;
+        player.aiState.wanderExpiry -= DT;
+
+        // If we reach the wander target, clear it
+        const distToWander = Math.sqrt(
+          (player.position.x - targetX) ** 2 +
+            (player.position.z - targetZ) ** 2
+        );
+        if (distToWander < 2) {
+          player.aiState.wanderExpiry = 0;
+        }
+      } else if (player.aiState) {
+        // Clear wander timer if we switch to an active role
+        player.aiState.wanderExpiry = 0;
+      }
+
+      // Input Logic
+      let inputDx = targetX - player.position.x;
+      let inputDz = targetZ - player.position.z;
+      const targetDist = Math.sqrt(inputDx * inputDx + inputDz * inputDz);
+
+      if (targetDist > 0.1) {
+        inputDx /= targetDist;
+        inputDz /= targetDist;
+      }
+
+      // ADD RANDOM NOISE (Humanization)
+      // 20% random jitter to direction
+      const jitter = 0.2;
+      inputDx += (Math.random() - 0.5) * jitter;
+      inputDz += (Math.random() - 0.5) * jitter;
+      const newLen = Math.sqrt(inputDx * inputDx + inputDz * inputDz);
+      if (newLen > 0.1) {
+        inputDx /= newLen;
+        inputDz /= newLen;
+      }
+
+      // Emergency Defend Boost
+      if (
+        role === 'defender' &&
+        Math.abs(bx - ownGoalX) < 15 &&
+        targetDist > 5
+      ) {
+        boost = true;
+      }
+
+      // Jump Logic
+      if (this.ball.position.y > 4 && distToBall < 5) {
+        jump = true;
+      }
+
+      // Apply Inputs
+      this.inputs[id] = {
+        dx: inputDx,
+        dz: inputDz,
+        boost,
+        jump,
+        seq: this.tick,
+      };
+
+      if (player.aiState) {
+        // Next update in 3 to 5 ticks
+        player.aiState.nextActionTick =
+          this.tick + Math.floor(Math.random() * 3) + 3;
+      }
+    }
   }
 
   _updatePlayers() {

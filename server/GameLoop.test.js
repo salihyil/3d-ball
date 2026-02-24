@@ -16,8 +16,8 @@ describe('GameLoop', () => {
       players: new Map(),
     };
     playerData = {
-      p1: 'blue',
-      p2: 'red',
+      p1: { team: 'blue' },
+      p2: { team: 'red' },
     };
     loop = new GameLoop(roomMock, playerData, true);
   });
@@ -58,7 +58,11 @@ describe('GameLoop', () => {
     ];
 
     // Create a game with 3 players on blue to trigger the spread spawns
-    playerData = { p1: 'blue', p2: 'blue', p3: 'blue' };
+    playerData = {
+      p1: { team: 'blue' },
+      p2: { team: 'blue' },
+      p3: { team: 'blue' },
+    };
     loop = new GameLoop(roomMock, playerData, true);
 
     for (const player of Object.values(loop.players)) {

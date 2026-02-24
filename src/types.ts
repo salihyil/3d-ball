@@ -26,6 +26,7 @@ export interface PlayerInfo {
   isDisconnected?: boolean;
   title?: string;
   nameColor?: string;
+  isBot?: boolean;
 }
 
 export type PowerUpType = 'magnet' | 'freeze' | 'rocket' | 'frozen';
@@ -128,6 +129,10 @@ export interface ClientToServerEvents {
   'start-game': () => void;
   'enter-match': () => void;
   'player-input': (data: PlayerInput) => void;
+  'add-bot': (
+    data: { team: Team },
+    cb: (res: { success?: boolean; error?: string }) => void
+  ) => void;
   'send-chat-message': (data: { text: string }) => void;
   'leave-room': () => void;
   'ping-check': (cb: () => void) => void;

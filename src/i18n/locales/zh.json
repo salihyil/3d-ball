@@ -51,7 +51,8 @@
     "connecting": "正在连接到房间...",
     "kick_btn": "踢出",
     "kicked_title": "你被踢出了房间",
-    "kicked_desc": "你已被房主移出房间。"
+    "kicked_desc": "你已被房主移出房间。",
+    "add_bot": "添加机器人"
   },
   "game": {
     "kph": "时速 (KPH)",

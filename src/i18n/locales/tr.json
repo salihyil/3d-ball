@@ -53,7 +53,8 @@
     "kicked_title": "Odadan Çıkarıldınız",
     "kicked_desc": "Oyun kurucusu tarafından odadan çıkarıldınız.",
     "connection_lost": "Bağlantı Kesildi",
-    "connection_lost_desc": "Sunucu ile olan bağlantınız koptu. Lütfen tekrar bağlanmayı deneyin."
+    "connection_lost_desc": "Sunucu ile olan bağlantınız koptu. Lütfen tekrar bağlanmayı deneyin.",
+    "add_bot": "Bot Ekle"
   },
   "game": {
     "kph": "KM/H",

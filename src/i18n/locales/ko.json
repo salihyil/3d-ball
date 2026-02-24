@@ -51,7 +51,8 @@
     "connecting": "방에 연결 중...",
     "kick_btn": "추방",
     "kicked_title": "방에서 추방됨",
-    "kicked_desc": "방장에 의해 방에서 추방되었습니다."
+    "kicked_desc": "방장에 의해 방에서 추방되었습니다.",
+    "add_bot": "봇 추가"
   },
   "game": {
     "kph": "KPH",

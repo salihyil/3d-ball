@@ -185,6 +185,28 @@ export function registerRoomEvents(io, socket) {
     callback?.({ success: true });
   });
 
+  // ---- Add Bot ----
+  socket.on('add-bot', (data, callback) => {
+    if (!socket.roomId) return callback?.({ error: 'Not in a room' });
+    const room = rooms.get(socket.roomId);
+    if (!room) return callback?.({ error: 'Room not found' });
+
+    if (!room.isHost(socket.id))
+      return callback?.({ error: 'Only the host can add bots' });
+
+    const { team } = data;
+    if (team !== 'blue' && team !== 'red')
+      return callback?.({ error: 'Invalid team' });
+
+    const result = room.addBot(team);
+    if (result && result.error) {
+      return callback?.({ error: result.error });
+    }
+
+    io.to(socket.roomId).emit('room-update', room.getRoomInfo());
+    callback?.({ success: true });
+  });
+
   socket.on('toggle-features', (data) => {
     if (!socket.roomId) return;
     const room = rooms.get(socket.roomId);
@@ -228,8 +250,11 @@ export function registerRoomEvents(io, socket) {
       `[KICK] Host ${socket.id} kicked ${targetNickname} (${targetId}) from ${socket.roomId}`
     );
 
-    // Notify the target player they were kicked
-    io.to(targetId).emit('kicked', { reason: 'kicked_by_host' });
+    // Notify the target player they were kicked (skip for bots — no real socket)
+    const targetPlayer = room.players.get(targetId);
+    if (targetPlayer && !targetPlayer.isBot) {
+      io.to(targetId).emit('kicked', { reason: 'kicked_by_host' });
+    }
 
     // Remove the player from the room (immediate, no grace period)
     room.removePlayer(targetId, true);

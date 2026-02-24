@@ -1,13 +1,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { socket } from '../../hooks/useNetwork';
-import { PlayerInfo, Team } from '../../types';
+import type { PlayerInfo, Team } from '../../types';
 
 interface TeamPanelProps {
   team: Team;
   players: PlayerInfo[];
   onJoin: (team: Team) => void;
   onKick: (targetId: string) => void;
+  onAddBot: (team: Team) => void;
   isHostUser: boolean;
 }
 
@@ -16,6 +17,7 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
   players,
   onJoin,
   onKick,
+  onAddBot,
   isHostUser,
 }) => {
   const { t } = useTranslation();
@@ -37,6 +39,11 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
           <div key={p.id} className="team-player">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="mono">{p.nickname}</span>
+              {p.isBot && (
+                <span className="bot-badge" data-testid="bot-badge">
+                  🤖 BOT
+                </span>
+              )}
               {p.equippedAccessories && p.equippedAccessories.length > 0 && (
                 <div style={{ display: 'flex', gap: '4px', opacity: 0.8 }}>
                   {p.equippedAccessories.map((accId) => (
@@ -81,18 +88,30 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
           </div>
         )}
       </div>
-      <button
-        className={`btn btn-${team}`}
-        style={{ marginTop: '20px', width: '100%' }}
-        onClick={() => onJoin(team)}
-        data-testid={`join-${team}-btn`}
-        disabled={
-          players.find((p) => p.id === socket.id)?.team === team ||
-          players.length >= 5
-        }
-      >
-        {players.length >= 5 ? t('lobby.team_full') : t(`lobby.join_${team}`)}
-      </button>
+      <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+        <button
+          className={`btn btn-${team}`}
+          style={{ flex: 1 }}
+          onClick={() => onJoin(team)}
+          data-testid={`join-${team}-btn`}
+          disabled={
+            players.find((p) => p.id === socket.id)?.team === team ||
+            players.length >= 5
+          }
+        >
+          {players.length >= 5 ? t('lobby.team_full') : t(`lobby.join_${team}`)}
+        </button>
+        {isHostUser && players.length < 5 && (
+          <button
+            className="btn btn-outline"
+            style={{ whiteSpace: 'nowrap' }}
+            onClick={() => onAddBot(team)}
+            data-testid={`add-bot-${team}-btn`}
+          >
+            🤖 {t('lobby.add_bot')}
+          </button>
+        )}
+      </div>
     </div>
   );
 };

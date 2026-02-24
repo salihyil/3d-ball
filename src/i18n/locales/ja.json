@@ -51,7 +51,8 @@
     "connecting": "ルームに接続中...",
     "kick_btn": "キック",
     "kicked_title": "キックされました",
-    "kicked_desc": "ホストによってルームから削除されました。"
+    "kicked_desc": "ホストによってルームから削除されました。",
+    "add_bot": "ボットを追加"
   },
   "game": {
     "kph": "KPH",

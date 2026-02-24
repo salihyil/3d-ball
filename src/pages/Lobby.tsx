@@ -132,6 +132,16 @@ export default function Lobby() {
     navigate('/');
   }, [navigate]);
 
+  const handleAddBot = useCallback((team: Team) => {
+    socket.emit(
+      'add-bot',
+      { team },
+      (res: { success?: boolean; error?: string }) => {
+        if (res.error) toast.error(res.error);
+      }
+    );
+  }, []);
+
   const handleToggleFeatures = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       socket.emit('toggle-features', { enableFeatures: e.target.checked });
@@ -314,6 +324,7 @@ export default function Lobby() {
                 players={bluePlayers}
                 onJoin={handleSwitchTeam}
                 onKick={handleKick}
+                onAddBot={handleAddBot}
                 isHostUser={isHost}
               />
               <TeamPanel
@@ -321,6 +332,7 @@ export default function Lobby() {
                 players={redPlayers}
                 onJoin={handleSwitchTeam}
                 onKick={handleKick}
+                onAddBot={handleAddBot}
                 isHostUser={isHost}
               />
             </div>

@@ -51,7 +51,8 @@
     "connecting": "Conectando a la sala...",
     "kick_btn": "Expulsar",
     "kicked_title": "Fuiste Expulsado",
-    "kicked_desc": "El anfitrión te ha expulsado de la sala."
+    "kicked_desc": "El anfitrión te ha expulsado de la sala.",
+    "add_bot": "Añadir Bot"
   },
   "game": {
     "kph": "KM/H",

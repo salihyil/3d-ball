@@ -53,7 +53,8 @@
     "kicked_title": "You Were Kicked",
     "kicked_desc": "You have been removed from the room by the host.",
     "connection_lost": "Connection Lost",
-    "connection_lost_desc": "Your connection to the server was interrupted. Please try rejoining."
+    "connection_lost_desc": "Your connection to the server was interrupted. Please try rejoining.",
+    "add_bot": "Add Bot"
   },
   "game": {
     "kph": "KPH",
