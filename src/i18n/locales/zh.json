@@ -6,7 +6,8 @@
     "back": "返回",
     "you": "你",
     "host": "房主",
-    "press_enter_chat": "按回车键聊天..."
+    "press_enter_chat": "按回车键聊天...",
+    "logout": "退出登录"
   },
   "home": {
     "title": "BALL BRAWL",
@@ -104,8 +105,9 @@
       "decal": "贴花",
       "trail": "拖尾",
       "goal_explosion": "Goal Explosions",
-      "player_title": "Player Titles"
-    }
+      "player_title": "玩家称号"
+    },
+    "settings": "设置"
   },
   "leaderboard": {
     "title": "排行榜",
@@ -114,5 +116,49 @@
     "goals": "进球",
     "matches": "比赛",
     "empty": "暂无数据"
+  },
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "nickname_label": "昵称",
+    "nickname_placeholder": "斗士",
+    "email_label": "邮箱",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "密码",
+    "confirm_password_label": "确认密码",
+    "processing": "处理中...",
+    "enter_arena": "进入竞技场",
+    "join_fleet": "加入舰队",
+    "or_divider": "或",
+    "continue_google": "使用 Google 继续",
+    "new_pilot": "新飞行员？",
+    "already_registered": "已经注册了？",
+    "request_access": "申请访问",
+    "login_instead": "登录",
+    "register_success": "注册成功！请检查您的邮箱进行验证。",
+    "error_generic": "发生了错误",
+    "validation": {
+      "email_invalid": "请输入有效的邮箱地址",
+      "password_min": "密码至少需要6个字符",
+      "nickname_min": "昵称至少需要3个字符",
+      "nickname_max": "昵称不能超过16个字符",
+      "nickname_format": "昵称只能包含字母、数字和下划线",
+      "confirm_required": "需要确认密码",
+      "passwords_mismatch": "密码不匹配"
+    }
+  },
+  "settings": {
+    "title": "账户设置",
+    "nickname_label": "昵称",
+    "nickname_placeholder": "你的昵称",
+    "email_label": "邮箱地址",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "新密码（留空保持当前密码）",
+    "confirm_password_label": "确认新密码",
+    "saving": "保存中...",
+    "save_changes": "保存更改",
+    "success_email": "更新已保存！请检查您的新邮箱以确认更改。",
+    "success_generic": "个人资料更新成功！",
+    "error_generic": "更新个人资料时发生错误。"
   }
 }

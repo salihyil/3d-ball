@@ -6,7 +6,8 @@
     "back": "Geri",
     "you": "SEN",
     "host": "KURUCU",
-    "press_enter_chat": "Mesaj yazmak için Enter'a basın..."
+    "press_enter_chat": "Mesaj yazmak için Enter'a basın...",
+    "logout": "Çıkış Yap"
   },
   "home": {
     "title": "BALL BRAWL",
@@ -107,7 +108,8 @@
       "trail": "İzler",
       "goal_explosion": "Gol Patlamaları",
       "player_title": "Oyuncu Ünvanları"
-    }
+    },
+    "settings": "Ayarlar"
   },
   "leaderboard": {
     "title": "Liderlik Tablosu",
@@ -116,5 +118,49 @@
     "goals": "Gol",
     "matches": "Maç",
     "empty": "Henüz maç verisi yok."
+  },
+  "auth": {
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "nickname_label": "Takma Ad",
+    "nickname_placeholder": "Savaşçı",
+    "email_label": "E-posta",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "Şifre",
+    "confirm_password_label": "Şifreyi Onayla",
+    "processing": "İşleniyor...",
+    "enter_arena": "Arenaya Gir",
+    "join_fleet": "Filoya Katıl",
+    "or_divider": "VEYA",
+    "continue_google": "Google ile Devam Et",
+    "new_pilot": "Yeni pilot musun?",
+    "already_registered": "Zaten kayıtlı mısın?",
+    "request_access": "Erişim Talep Et",
+    "login_instead": "Giriş yap",
+    "register_success": "Kayıt başarılı! Doğrulama için e-postanızı kontrol edin.",
+    "error_generic": "Bir hata oluştu",
+    "validation": {
+      "email_invalid": "Geçerli bir e-posta adresi girin",
+      "password_min": "Şifre en az 6 karakter olmalıdır",
+      "nickname_min": "Takma ad en az 3 karakter olmalıdır",
+      "nickname_max": "Takma ad 16 karakteri aşamaz",
+      "nickname_format": "Takma ad yalnızca harf, rakam ve alt çizgi içerebilir",
+      "confirm_required": "Şifre onayı gereklidir",
+      "passwords_mismatch": "Şifreler eşleşmiyor"
+    }
+  },
+  "settings": {
+    "title": "Hesap Ayarları",
+    "nickname_label": "Takma Ad",
+    "nickname_placeholder": "Takma adınız",
+    "email_label": "E-posta Adresi",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "Yeni Şifre (değiştirmemek için boş bırakın)",
+    "confirm_password_label": "Yeni Şifreyi Onayla",
+    "saving": "Kaydediliyor...",
+    "save_changes": "Değişiklikleri Kaydet",
+    "success_email": "Güncellemeler kaydedildi! Değişikliği onaylamak için yeni e-postanızı kontrol edin.",
+    "success_generic": "Profil başarıyla güncellendi!",
+    "error_generic": "Profil güncellenirken bir hata oluştu."
   }
 }

@@ -1,7 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 import { useAuth } from '../../hooks/useAuth';
 import { usePlayerProfile } from '../../hooks/usePlayerProfile';
 import { supabase } from '../../lib/supabase';
+import { EyeIcon, EyeOffIcon } from '../Icons';
 
 interface AccountSettingsModalProps {
   isOpen: boolean;
@@ -14,45 +19,107 @@ export function AccountSettingsModal({
 }: AccountSettingsModalProps) {
   const { user } = useAuth();
   const { profile, updateNickname } = usePlayerProfile();
+  const { t } = useTranslation();
 
-  const [nickname, setNickname] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const accountSchemaBase = z.object({
+    nickname: z
+      .string()
+      .min(3, t('auth.validation.nickname_min'))
+      .max(16, t('auth.validation.nickname_max'))
+      .regex(/^[a-zA-Z0-9_]+$/, t('auth.validation.nickname_format'))
+      .optional()
+      .or(z.literal('')),
+    email: z
+      .email({ error: t('auth.validation.email_invalid') })
+      .optional()
+      .or(z.literal('')),
+    password: z
+      .string()
+      .min(6, t('auth.validation.password_min'))
+      .optional()
+      .or(z.literal('')),
+    confirmPassword: z.string().optional().or(z.literal('')),
+  });
+
+  const accountSchema = accountSchemaBase.refine(
+    (data) => {
+      if (data.password && data.password.length > 0) {
+        return data.password === data.confirmPassword;
+      }
+      return true;
+    },
+    {
+      message: t('auth.validation.passwords_mismatch'),
+      path: ['confirmPassword'],
+    }
+  );
+
+  type AccountFormData = z.infer<typeof accountSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<AccountFormData>({
+    resolver: zodResolver(accountSchema),
+    mode: 'onBlur',
+    values: {
+      nickname: profile?.nickname || '',
+      email: user?.email || '',
+      password: '',
+      confirmPassword: '',
+    },
+    resetOptions: {
+      keepDirtyValues: true,
+    },
+  });
+
   useEffect(() => {
     if (isOpen) {
-      if (profile?.nickname) setNickname(profile.nickname);
-      if (user?.email) setEmail(user.email);
-      setPassword('');
+      reset({
+        nickname: profile?.nickname || '',
+        email: user?.email || '',
+        password: '',
+        confirmPassword: '',
+      });
       setError(null);
       setSuccess(null);
+      setShowPassword(false);
+      setShowConfirmPassword(false);
     }
-  }, [isOpen, profile, user]);
+  }, [isOpen, reset, profile, user]);
 
   if (!isOpen || !user) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: AccountFormData) => {
     setError(null);
     setSuccess(null);
     setLoading(true);
 
     try {
       // 1. Update Nickname if changed
-      if (nickname !== profile?.nickname && nickname.trim() !== '') {
-        await updateNickname(nickname.trim());
+      if (
+        data.nickname &&
+        data.nickname !== profile?.nickname &&
+        data.nickname.trim() !== ''
+      ) {
+        await updateNickname(data.nickname.trim());
       }
 
       // 2. Update Auth User details if changed
       const authUpdates: { email?: string; password?: string } = {};
-      if (email !== user.email && email.trim() !== '') {
-        authUpdates.email = email.trim();
+      if (data.email && data.email !== user.email && data.email.trim() !== '') {
+        authUpdates.email = data.email.trim();
       }
-      if (password.trim() !== '') {
-        authUpdates.password = password;
+      if (data.password && data.password.trim() !== '') {
+        authUpdates.password = data.password;
       }
 
       if (Object.keys(authUpdates).length > 0) {
@@ -61,14 +128,12 @@ export function AccountSettingsModal({
         if (updateError) throw updateError;
 
         if (authUpdates.email) {
-          setSuccess(
-            'Updates saved! Please check your new email to confirm the change.'
-          );
+          setSuccess(t('settings.success_email'));
         } else {
-          setSuccess('Profile updated successfully!');
+          setSuccess(t('settings.success_generic'));
         }
       } else {
-        setSuccess('Profile updated successfully!');
+        setSuccess(t('settings.success_generic'));
       }
 
       setTimeout(() => {
@@ -77,9 +142,7 @@ export function AccountSettingsModal({
       }, 2000);
     } catch (err: unknown) {
       setError(
-        err instanceof Error
-          ? err.message
-          : 'An error occurred while updating profile.'
+        err instanceof Error ? err.message : t('settings.error_generic')
       );
     } finally {
       setLoading(false);
@@ -96,7 +159,7 @@ export function AccountSettingsModal({
           &times;
         </button>
 
-        <h2 className="modal-title">Account Settings</h2>
+        <h2 className="modal-title">{t('settings.title')}</h2>
 
         {error && (
           <div
@@ -130,40 +193,125 @@ export function AccountSettingsModal({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="home-form">
+        <form onSubmit={handleSubmit(onSubmit)} className="home-form">
           <div>
-            <label className="label">Nickname</label>
+            <label className="label">{t('settings.nickname_label')}</label>
             <input
               type="text"
               className="input"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="Your nickname"
+              {...register('nickname')}
+              placeholder={t('settings.nickname_placeholder')}
             />
+            {errors.nickname && (
+              <p
+                style={{ color: '#ff4a4a', fontSize: '12px', marginTop: '4px' }}
+              >
+                {errors.nickname.message}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="label">Email Address</label>
+            <label className="label">{t('settings.email_label')}</label>
             <input
               type="email"
               className="input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="pilot@ballbrawl.com"
+              {...register('email')}
+              placeholder={t('settings.email_placeholder')}
             />
+            {errors.email && (
+              <p
+                style={{ color: '#ff4a4a', fontSize: '12px', marginTop: '4px' }}
+              >
+                {errors.email.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="label">{t('settings.password_label')}</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="input"
+                {...register('password')}
+                placeholder="••••••••"
+                style={{ paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+            {errors.password && (
+              <p
+                style={{ color: '#ff4a4a', fontSize: '12px', marginTop: '4px' }}
+              >
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           <div>
             <label className="label">
-              New Password (leave blank to keep current)
+              {t('settings.confirm_password_label')}
             </label>
-            <input
-              type="password"
-              className="input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                className="input"
+                {...register('confirmPassword')}
+                placeholder="••••••••"
+                style={{ paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p
+                style={{
+                  color: '#ff4a4a',
+                  fontSize: '12px',
+                  marginTop: '4px',
+                }}
+              >
+                {errors.confirmPassword.message}
+              </p>
+            )}
           </div>
 
           <button
@@ -172,7 +320,7 @@ export function AccountSettingsModal({
             disabled={loading}
             style={{ marginTop: '10px' }}
           >
-            {loading ? 'Saving...' : 'Save Changes'}
+            {loading ? t('settings.saving') : t('settings.save_changes')}
           </button>
         </form>
       </div>

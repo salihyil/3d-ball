@@ -6,7 +6,8 @@
     "back": "Back",
     "you": "YOU",
     "host": "HOST",
-    "press_enter_chat": "Press Enter to chat..."
+    "press_enter_chat": "Press Enter to chat...",
+    "logout": "Logout"
   },
   "home": {
     "title": "BALL BRAWL",
@@ -107,7 +108,8 @@
       "trail": "Trails",
       "goal_explosion": "Goal Explosions",
       "player_title": "Player Titles"
-    }
+    },
+    "settings": "Settings"
   },
   "leaderboard": {
     "title": "Leaderboard",
@@ -116,5 +118,49 @@
     "goals": "Goals",
     "matches": "Matches",
     "empty": "No match data yet."
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "nickname_label": "Nickname",
+    "nickname_placeholder": "Brawler",
+    "email_label": "Email",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "Password",
+    "confirm_password_label": "Confirm Password",
+    "processing": "Processing...",
+    "enter_arena": "Enter Arena",
+    "join_fleet": "Join Fleet",
+    "or_divider": "OR",
+    "continue_google": "Continue with Google",
+    "new_pilot": "New pilot?",
+    "already_registered": "Already registered?",
+    "request_access": "Request Access",
+    "login_instead": "Login instead",
+    "register_success": "Registration successful! Please check your email for verification.",
+    "error_generic": "An error occurred",
+    "validation": {
+      "email_invalid": "Please enter a valid email address",
+      "password_min": "Password must be at least 6 characters",
+      "nickname_min": "Nickname must be at least 3 characters",
+      "nickname_max": "Nickname cannot exceed 16 characters",
+      "nickname_format": "Nickname can only contain letters, numbers, and underscores",
+      "confirm_required": "Confirm password is required",
+      "passwords_mismatch": "Passwords don't match"
+    }
+  },
+  "settings": {
+    "title": "Account Settings",
+    "nickname_label": "Nickname",
+    "nickname_placeholder": "Your nickname",
+    "email_label": "Email Address",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "New Password (leave blank to keep current)",
+    "confirm_password_label": "Confirm New Password",
+    "saving": "Saving...",
+    "save_changes": "Save Changes",
+    "success_email": "Updates saved! Please check your new email to confirm the change.",
+    "success_generic": "Profile updated successfully!",
+    "error_generic": "An error occurred while updating profile."
   }
 }

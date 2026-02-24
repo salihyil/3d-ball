@@ -6,7 +6,8 @@
     "back": "Volver",
     "you": "TÚ",
     "host": "ANFITRIÓN",
-    "press_enter_chat": "Presiona Enter para chatear..."
+    "press_enter_chat": "Presiona Enter para chatear...",
+    "logout": "Cerrar sesión"
   },
   "home": {
     "title": "BALL BRAWL",
@@ -104,8 +105,9 @@
       "decal": "Calcomanías",
       "trail": "Rastros",
       "goal_explosion": "Goal Explosions",
-      "player_title": "Player Titles"
-    }
+      "player_title": "Títulos de jugador"
+    },
+    "settings": "Configuración"
   },
   "leaderboard": {
     "title": "Clasificación",
@@ -114,5 +116,49 @@
     "goals": "Goles",
     "matches": "Partidos",
     "empty": "Aún no hay datos."
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "nickname_label": "Apodo",
+    "nickname_placeholder": "Luchador",
+    "email_label": "Correo electrónico",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "Contraseña",
+    "confirm_password_label": "Confirmar contraseña",
+    "processing": "Procesando...",
+    "enter_arena": "Entrar a la arena",
+    "join_fleet": "Unirse a la flota",
+    "or_divider": "O",
+    "continue_google": "Continuar con Google",
+    "new_pilot": "¿Nuevo piloto?",
+    "already_registered": "¿Ya estás registrado?",
+    "request_access": "Solicitar acceso",
+    "login_instead": "Iniciar sesión",
+    "register_success": "¡Registro exitoso! Revisa tu correo electrónico para la verificación.",
+    "error_generic": "Ocurrió un error",
+    "validation": {
+      "email_invalid": "Ingresa una dirección de correo válida",
+      "password_min": "La contraseña debe tener al menos 6 caracteres",
+      "nickname_min": "El apodo debe tener al menos 3 caracteres",
+      "nickname_max": "El apodo no puede exceder 16 caracteres",
+      "nickname_format": "El apodo solo puede contener letras, números y guiones bajos",
+      "confirm_required": "La confirmación de contraseña es obligatoria",
+      "passwords_mismatch": "Las contraseñas no coinciden"
+    }
+  },
+  "settings": {
+    "title": "Configuración de cuenta",
+    "nickname_label": "Apodo",
+    "nickname_placeholder": "Tu apodo",
+    "email_label": "Dirección de correo",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "Nueva contraseña (dejar en blanco para mantener la actual)",
+    "confirm_password_label": "Confirmar nueva contraseña",
+    "saving": "Guardando...",
+    "save_changes": "Guardar cambios",
+    "success_email": "¡Cambios guardados! Revisa tu nuevo correo para confirmar el cambio.",
+    "success_generic": "¡Perfil actualizado con éxito!",
+    "error_generic": "Ocurrió un error al actualizar el perfil."
   }
 }

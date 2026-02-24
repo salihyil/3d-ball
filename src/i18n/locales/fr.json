@@ -6,7 +6,8 @@
     "back": "Retour",
     "you": "VOUS",
     "host": "HÔTE",
-    "press_enter_chat": "Appuyez sur Entrée pour discuter..."
+    "press_enter_chat": "Appuyez sur Entrée pour discuter...",
+    "logout": "Déconnexion"
   },
   "home": {
     "title": "BALL BRAWL",
@@ -104,8 +105,9 @@
       "decal": "Décalcomanies",
       "trail": "Traînées",
       "goal_explosion": "Goal Explosions",
-      "player_title": "Player Titles"
-    }
+      "player_title": "Titres de joueur"
+    },
+    "settings": "Paramètres"
   },
   "leaderboard": {
     "title": "Classement",
@@ -114,5 +116,49 @@
     "goals": "Buts",
     "matches": "Matchs",
     "empty": "Aucune donnée pour le moment."
+  },
+  "auth": {
+    "login": "Connexion",
+    "register": "Inscription",
+    "nickname_label": "Pseudo",
+    "nickname_placeholder": "Combattant",
+    "email_label": "E-mail",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "Mot de passe",
+    "confirm_password_label": "Confirmer le mot de passe",
+    "processing": "Traitement...",
+    "enter_arena": "Entrer dans l'arène",
+    "join_fleet": "Rejoindre la flotte",
+    "or_divider": "OU",
+    "continue_google": "Continuer avec Google",
+    "new_pilot": "Nouveau pilote ?",
+    "already_registered": "Déjà inscrit ?",
+    "request_access": "Demander l'accès",
+    "login_instead": "Se connecter",
+    "register_success": "Inscription réussie ! Vérifiez votre e-mail pour la confirmation.",
+    "error_generic": "Une erreur s'est produite",
+    "validation": {
+      "email_invalid": "Veuillez entrer une adresse e-mail valide",
+      "password_min": "Le mot de passe doit contenir au moins 6 caractères",
+      "nickname_min": "Le pseudo doit contenir au moins 3 caractères",
+      "nickname_max": "Le pseudo ne peut pas dépasser 16 caractères",
+      "nickname_format": "Le pseudo ne peut contenir que des lettres, des chiffres et des tirets bas",
+      "confirm_required": "La confirmation du mot de passe est requise",
+      "passwords_mismatch": "Les mots de passe ne correspondent pas"
+    }
+  },
+  "settings": {
+    "title": "Paramètres du compte",
+    "nickname_label": "Pseudo",
+    "nickname_placeholder": "Votre pseudo",
+    "email_label": "Adresse e-mail",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "Nouveau mot de passe (laisser vide pour garder l'actuel)",
+    "confirm_password_label": "Confirmer le nouveau mot de passe",
+    "saving": "Enregistrement...",
+    "save_changes": "Enregistrer les modifications",
+    "success_email": "Modifications enregistrées ! Vérifiez votre nouvel e-mail pour confirmer le changement.",
+    "success_generic": "Profil mis à jour avec succès !",
+    "error_generic": "Une erreur s'est produite lors de la mise à jour du profil."
   }
 }

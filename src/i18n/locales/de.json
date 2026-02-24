@@ -6,7 +6,8 @@
     "back": "Zurück",
     "you": "DU",
     "host": "HOST",
-    "press_enter_chat": "Drücke Enter zum Chatten..."
+    "press_enter_chat": "Drücke Enter zum Chatten...",
+    "logout": "Abmelden"
   },
   "home": {
     "title": "BALL BRAWL",
@@ -104,8 +105,9 @@
       "decal": "Aufkleber",
       "trail": "Spuren",
       "goal_explosion": "Goal Explosions",
-      "player_title": "Player Titles"
-    }
+      "player_title": "Spieler-Titel"
+    },
+    "settings": "Einstellungen"
   },
   "leaderboard": {
     "title": "Bestenliste",
@@ -114,5 +116,49 @@
     "goals": "Tore",
     "matches": "Spiele",
     "empty": "Noch keine Spieldaten."
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "nickname_label": "Spitzname",
+    "nickname_placeholder": "Kämpfer",
+    "email_label": "E-Mail",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "Passwort",
+    "confirm_password_label": "Passwort bestätigen",
+    "processing": "Verarbeitung...",
+    "enter_arena": "Arena betreten",
+    "join_fleet": "Flotte beitreten",
+    "or_divider": "ODER",
+    "continue_google": "Weiter mit Google",
+    "new_pilot": "Neuer Pilot?",
+    "already_registered": "Bereits registriert?",
+    "request_access": "Zugang anfordern",
+    "login_instead": "Stattdessen anmelden",
+    "register_success": "Registrierung erfolgreich! Bitte überprüfe deine E-Mail zur Bestätigung.",
+    "error_generic": "Ein Fehler ist aufgetreten",
+    "validation": {
+      "email_invalid": "Bitte gib eine gültige E-Mail-Adresse ein",
+      "password_min": "Passwort muss mindestens 6 Zeichen lang sein",
+      "nickname_min": "Spitzname muss mindestens 3 Zeichen lang sein",
+      "nickname_max": "Spitzname darf 16 Zeichen nicht überschreiten",
+      "nickname_format": "Spitzname darf nur Buchstaben, Zahlen und Unterstriche enthalten",
+      "confirm_required": "Passwortbestätigung ist erforderlich",
+      "passwords_mismatch": "Passwörter stimmen nicht überein"
+    }
+  },
+  "settings": {
+    "title": "Kontoeinstellungen",
+    "nickname_label": "Spitzname",
+    "nickname_placeholder": "Dein Spitzname",
+    "email_label": "E-Mail-Adresse",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "Neues Passwort (leer lassen für aktuelles)",
+    "confirm_password_label": "Neues Passwort bestätigen",
+    "saving": "Speichern...",
+    "save_changes": "Änderungen speichern",
+    "success_email": "Änderungen gespeichert! Bitte überprüfe deine neue E-Mail zur Bestätigung.",
+    "success_generic": "Profil erfolgreich aktualisiert!",
+    "error_generic": "Beim Aktualisieren des Profils ist ein Fehler aufgetreten."
   }
 }

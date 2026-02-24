@@ -6,7 +6,8 @@
     "back": "뒤로",
     "you": "나",
     "host": "방장",
-    "press_enter_chat": "Enter를 눌러 채팅..."
+    "press_enter_chat": "Enter를 눌러 채팅...",
+    "logout": "로그아웃"
   },
   "home": {
     "title": "BALL BRAWL",
@@ -104,8 +105,9 @@
       "decal": "데칼",
       "trail": "트레일",
       "goal_explosion": "Goal Explosions",
-      "player_title": "Player Titles"
-    }
+      "player_title": "플레이어 타이틀"
+    },
+    "settings": "설정"
   },
   "leaderboard": {
     "title": "리더보드",
@@ -114,5 +116,49 @@
     "goals": "골",
     "matches": "경기",
     "empty": "아직 데이터가 없습니다."
+  },
+  "auth": {
+    "login": "로그인",
+    "register": "회원가입",
+    "nickname_label": "닉네임",
+    "nickname_placeholder": "브롤러",
+    "email_label": "이메일",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "비밀번호",
+    "confirm_password_label": "비밀번호 확인",
+    "processing": "처리 중...",
+    "enter_arena": "아레나 입장",
+    "join_fleet": "함대 합류",
+    "or_divider": "또는",
+    "continue_google": "Google로 계속",
+    "new_pilot": "새로운 파일럿?",
+    "already_registered": "이미 등록하셨나요?",
+    "request_access": "접근 요청",
+    "login_instead": "로그인하기",
+    "register_success": "가입 성공! 인증을 위해 이메일을 확인하세요.",
+    "error_generic": "오류가 발생했습니다",
+    "validation": {
+      "email_invalid": "유효한 이메일 주소를 입력하세요",
+      "password_min": "비밀번호는 최소 6자 이상이어야 합니다",
+      "nickname_min": "닉네임은 최소 3자 이상이어야 합니다",
+      "nickname_max": "닉네임은 16자를 초과할 수 없습니다",
+      "nickname_format": "닉네임은 영문, 숫자, 밑줄만 사용할 수 있습니다",
+      "confirm_required": "비밀번호 확인이 필요합니다",
+      "passwords_mismatch": "비밀번호가 일치하지 않습니다"
+    }
+  },
+  "settings": {
+    "title": "계정 설정",
+    "nickname_label": "닉네임",
+    "nickname_placeholder": "당신의 닉네임",
+    "email_label": "이메일 주소",
+    "email_placeholder": "pilot@ballbrawl.com",
+    "password_label": "새 비밀번호 (현재 비밀번호를 유지하려면 빈칸)",
+    "confirm_password_label": "새 비밀번호 확인",
+    "saving": "저장 중...",
+    "save_changes": "변경 사항 저장",
+    "success_email": "업데이트가 저장되었습니다! 변경을 확인하려면 새 이메일을 확인하세요.",
+    "success_generic": "프로필이 성공적으로 업데이트되었습니다!",
+    "error_generic": "프로필 업데이트 중 오류가 발생했습니다."
   }
 }
