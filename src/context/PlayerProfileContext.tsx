@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { socket } from '../hooks/useNetwork';
 import { supabase } from '../lib/supabase';
 import { Accessory, Profile } from '../types';
+import { toast } from '../utils/toast';
 import { PlayerProfileContext } from './PlayerProfileContextInstance';
 
 export function PlayerProfileProvider({ children }: { children: ReactNode }) {
@@ -94,7 +95,7 @@ export function PlayerProfileProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     const handleItemUnlocked = () => {
-      alert('Congratulations! New item unlocked!');
+      toast.success('Congratulations! New item unlocked!');
       fetchProfileData();
     };
 

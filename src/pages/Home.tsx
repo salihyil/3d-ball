@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth';
 import { socket } from '../hooks/useNetwork';
 import { usePlayerProfile } from '../hooks/usePlayerProfile';
 import { supabase } from '../lib/supabase';
+import { toast } from '../utils/toast';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -65,7 +66,7 @@ export default function Home() {
 
         if (isCancelled) return;
 
-        alert(t('profile.purchase_success', 'Purchase confirmed!'));
+        toast.success(t('profile.purchase_success', 'Purchase confirmed!'));
         await refreshProfile();
         setIsAvatarModalOpen(true);
       } catch (err) {

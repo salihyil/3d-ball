@@ -19,6 +19,7 @@ import TeamPanel from '../components/Lobby/TeamPanel';
 import { socket } from '../hooks/useNetwork';
 import { useSoundSettings } from '../hooks/useSoundSettings';
 import type { GameSnapshot, RoomInfo, Team } from '../types';
+import { toast } from '../utils/toast';
 
 const SAMPLE_TEXTURES = [
   { id: 'default', name: 'Default Green', url: '' },
@@ -117,7 +118,7 @@ export default function Lobby() {
       'switch-team',
       { team },
       (res: { error?: string; success?: boolean }) => {
-        if (res.error) alert(res.error);
+        if (res.error) toast.error(res.error);
       }
     );
   }, []);

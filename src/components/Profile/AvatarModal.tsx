@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { socket } from '../../hooks/useNetwork';
 import { usePlayerProfile } from '../../hooks/usePlayerProfile';
 import { supabase } from '../../lib/supabase';
+import { toast } from '../../utils/toast';
 import { Character } from '../GameScene/Character';
 import { CanvasErrorBoundary } from '../ui/CanvasErrorBoundary';
 
@@ -216,7 +217,7 @@ export const AvatarModal = memo(function AvatarModal({
       } else if (result.error === 'insufficient_coins') {
         setShowCoinShop(true);
       } else {
-        alert(result.error || 'Purchase failed');
+        toast.error(result.error || 'Purchase failed');
       }
     } catch (err) {
       console.error('Coin purchase failed:', err);
@@ -248,7 +249,7 @@ export const AvatarModal = memo(function AvatarModal({
       if (url) window.location.href = url;
     } catch (err) {
       console.error('Coin purchase redirect failed:', err);
-      alert('Failed to open payment page. Please try again.');
+      toast.error('Failed to open payment page. Please try again.');
     }
   };
 

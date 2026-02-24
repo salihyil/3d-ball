@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
+import { toast } from '../../utils/toast';
 import { EyeIcon, EyeOffIcon } from '../Icons';
 
 interface AuthModalProps {
@@ -89,7 +90,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           },
         });
         if (error) throw error;
-        alert(t('auth.register_success'));
+        toast.success(t('auth.register_success'));
       }
       onClose();
     } catch (err: unknown) {

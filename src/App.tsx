@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { ToastContainer } from './components/ui/ToastContainer';
 import { useAuth } from './hooks/useAuth';
 import { useSocketManager } from './hooks/useNetwork';
 import { usePlayerProfile } from './hooks/usePlayerProfile';
@@ -18,6 +19,7 @@ function SocketSync() {
 export default function App() {
   return (
     <>
+      <ToastContainer />
       <SocketSync />
       <Suspense
         fallback={
