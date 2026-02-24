@@ -631,7 +631,9 @@ h1 {
 .team-panel {
   padding: 20px;
   border-radius: var(--radius-lg);
-  min-height: 200px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 .team-panel.blue {
@@ -681,6 +683,7 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
 }
 
 .team-player {
@@ -755,6 +758,38 @@ h1 {
   background: rgba(34, 197, 94, 0.15);
   color: var(--success);
   font-weight: 600;
+}
+
+.add-bot-slot {
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.add-bot-slot:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--text-primary);
+}
+
+.add-bot-text {
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.add-bot-plus {
+  font-size: 18px;
+  font-weight: 300;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.add-bot-slot:hover .add-bot-plus {
+  opacity: 1;
 }
 
 .lobby-settings {

@@ -87,11 +87,23 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
             {t('lobby.empty_team')}
           </div>
         )}
+        {isHostUser && players.length < 5 && (
+          <button
+            className="team-player add-bot-slot"
+            onClick={() => onAddBot(team)}
+            data-testid={`add-bot-${team}-btn`}
+          >
+            <span style={{ fontSize: '18px' }}>🤖</span>
+            <span className="add-bot-text">{t('lobby.add_bot')}</span>
+            <div style={{ flex: 1 }} />
+            <span className="add-bot-plus">+</span>
+          </button>
+        )}
       </div>
-      <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+      <div style={{ marginTop: '20px' }}>
         <button
           className={`btn btn-${team}`}
-          style={{ flex: 1 }}
+          style={{ width: '100%' }}
           onClick={() => onJoin(team)}
           data-testid={`join-${team}-btn`}
           disabled={
@@ -101,16 +113,6 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
         >
           {players.length >= 5 ? t('lobby.team_full') : t(`lobby.join_${team}`)}
         </button>
-        {isHostUser && players.length < 5 && (
-          <button
-            className="btn btn-outline"
-            style={{ whiteSpace: 'nowrap' }}
-            onClick={() => onAddBot(team)}
-            data-testid={`add-bot-${team}-btn`}
-          >
-            🤖 {t('lobby.add_bot')}
-          </button>
-        )}
       </div>
     </div>
   );
