@@ -6,7 +6,13 @@ import { z } from 'zod';
 import { useAuth } from '../../hooks/useAuth';
 import { usePlayerProfile } from '../../hooks/usePlayerProfile';
 import { supabase } from '../../lib/supabase';
-import { EyeIcon, EyeOffIcon } from '../Icons';
+import {
+  AlertCircleIcon,
+  CheckCircleIcon,
+  EyeIcon,
+  EyeOffIcon,
+  SpinnerIcon,
+} from '../Icons';
 
 interface AccountSettingsModalProps {
   isOpen: boolean;
@@ -89,12 +95,17 @@ export function AccountSettingsModal({
         password: '',
         confirmPassword: '',
       });
+    }
+  }, [isOpen, reset, profile?.nickname, user?.email]);
+
+  useEffect(() => {
+    if (isOpen) {
       setError(null);
       setSuccess(null);
       setShowPassword(false);
       setShowConfirmPassword(false);
     }
-  }, [isOpen, reset, profile, user]);
+  }, [isOpen]);
 
   if (!isOpen || !user) return null;
 
@@ -104,6 +115,8 @@ export function AccountSettingsModal({
     setLoading(true);
 
     try {
+      let updatedAnything = false;
+
       // 1. Update Nickname if changed
       if (
         data.nickname &&
@@ -111,6 +124,7 @@ export function AccountSettingsModal({
         data.nickname.trim() !== ''
       ) {
         await updateNickname(data.nickname.trim());
+        updatedAnything = true;
       }
 
       // 2. Update Auth User details if changed
@@ -126,20 +140,24 @@ export function AccountSettingsModal({
         const { error: updateError } =
           await supabase.auth.updateUser(authUpdates);
         if (updateError) throw updateError;
+        updatedAnything = true;
+      }
 
+      if (updatedAnything) {
         if (authUpdates.email) {
           setSuccess(t('settings.success_email'));
         } else {
           setSuccess(t('settings.success_generic'));
         }
-      } else {
-        setSuccess(t('settings.success_generic'));
-      }
 
-      setTimeout(() => {
-        setSuccess(null);
-        if (!authUpdates.email) onClose();
-      }, 2000);
+        setTimeout(() => {
+          setSuccess(null);
+          if (!authUpdates.email) onClose();
+        }, 2000);
+      } else {
+        // No changes made, just close the modal
+        onClose();
+      }
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : t('settings.error_generic')
@@ -166,14 +184,20 @@ export function AccountSettingsModal({
             className="auth-error animate-in"
             style={{
               color: '#ff4a4a',
-              background: 'rgba(220, 38, 38, 0.1)',
-              padding: '10px',
-              borderRadius: '6px',
-              marginBottom: '16px',
+              background: 'rgba(255, 74, 74, 0.1)',
+              border: '1px solid rgba(255, 74, 74, 0.2)',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '20px',
               fontSize: '14px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              lineHeight: '1.4',
             }}
           >
-            {error}
+            <AlertCircleIcon className="shrink-0 mt-0.5" />
+            <span>{error}</span>
           </div>
         )}
 
@@ -183,13 +207,19 @@ export function AccountSettingsModal({
             style={{
               color: '#4ade80',
               background: 'rgba(74, 222, 128, 0.1)',
-              padding: '10px',
-              borderRadius: '6px',
-              marginBottom: '16px',
+              border: '1px solid rgba(74, 222, 128, 0.2)',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '20px',
               fontSize: '14px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              lineHeight: '1.4',
             }}
           >
-            {success}
+            <CheckCircleIcon className="shrink-0 mt-0.5" />
+            <span>{success}</span>
           </div>
         )}
 
@@ -317,10 +347,23 @@ export function AccountSettingsModal({
           <button
             type="submit"
             className="btn btn-primary btn-lg"
-            disabled={loading}
-            style={{ marginTop: '10px' }}
+            disabled={loading || !!success}
+            style={{
+              marginTop: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease-in-out',
+            }}
           >
-            {loading ? t('settings.saving') : t('settings.save_changes')}
+            {loading && <SpinnerIcon />}
+            {!loading && success && <CheckCircleIcon size={18} />}
+            {loading
+              ? t('settings.saving')
+              : success
+                ? t('settings.success_generic')
+                : t('settings.save_changes')}
           </button>
         </form>
       </div>
