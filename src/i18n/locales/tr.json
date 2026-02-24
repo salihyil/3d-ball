@@ -147,7 +147,10 @@
       "nickname_format": "Takma ad yalnızca harf, rakam ve alt çizgi içerebilir",
       "confirm_required": "Şifre onayı gereklidir",
       "passwords_mismatch": "Şifreler eşleşmiyor"
-    }
+    },
+    "set_nickname_title": "Takma Adınızı Seçin",
+    "set_nickname_desc": "Oynamaya başlamak için lütfen bir takma ad belirleyin.",
+    "save_nickname": "Takma Adı Kaydet"
   },
   "settings": {
     "title": "Hesap Ayarları",

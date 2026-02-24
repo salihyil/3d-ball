@@ -145,7 +145,10 @@
       "nickname_format": "El apodo solo puede contener letras, números y guiones bajos",
       "confirm_required": "La confirmación de contraseña es obligatoria",
       "passwords_mismatch": "Las contraseñas no coinciden"
-    }
+    },
+    "set_nickname_title": "Elige tu apodo",
+    "set_nickname_desc": "Por favor establece un apodo para empezar a jugar.",
+    "save_nickname": "Guardar apodo"
   },
   "settings": {
     "title": "Configuración de cuenta",

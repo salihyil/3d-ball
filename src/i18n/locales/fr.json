@@ -145,7 +145,10 @@
       "nickname_format": "Le pseudo ne peut contenir que des lettres, des chiffres et des tirets bas",
       "confirm_required": "La confirmation du mot de passe est requise",
       "passwords_mismatch": "Les mots de passe ne correspondent pas"
-    }
+    },
+    "set_nickname_title": "Choisissez votre pseudo",
+    "set_nickname_desc": "Veuillez définir un pseudo pour commencer à jouer.",
+    "save_nickname": "Enregistrer le pseudo"
   },
   "settings": {
     "title": "Paramètres du compte",

@@ -145,7 +145,10 @@
       "nickname_format": "닉네임은 영문, 숫자, 밑줄만 사용할 수 있습니다",
       "confirm_required": "비밀번호 확인이 필요합니다",
       "passwords_mismatch": "비밀번호가 일치하지 않습니다"
-    }
+    },
+    "set_nickname_title": "닉네임 선택",
+    "set_nickname_desc": "게임을 시작하려면 닉네임을 설정하세요.",
+    "save_nickname": "닉네임 저장"
   },
   "settings": {
     "title": "계정 설정",

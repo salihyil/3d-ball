@@ -147,7 +147,10 @@
       "nickname_format": "Nickname can only contain letters, numbers, and underscores",
       "confirm_required": "Confirm password is required",
       "passwords_mismatch": "Passwords don't match"
-    }
+    },
+    "set_nickname_title": "Choose Your Nickname",
+    "set_nickname_desc": "Please set a nickname to start playing.",
+    "save_nickname": "Save Nickname"
   },
   "settings": {
     "title": "Account Settings",

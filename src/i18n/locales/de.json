@@ -145,7 +145,10 @@
       "nickname_format": "Spitzname darf nur Buchstaben, Zahlen und Unterstriche enthalten",
       "confirm_required": "Passwortbestätigung ist erforderlich",
       "passwords_mismatch": "Passwörter stimmen nicht überein"
-    }
+    },
+    "set_nickname_title": "Wähle deinen Spitznamen",
+    "set_nickname_desc": "Bitte lege einen Spitznamen fest, um zu spielen.",
+    "save_nickname": "Spitznamen speichern"
   },
   "settings": {
     "title": "Kontoeinstellungen",

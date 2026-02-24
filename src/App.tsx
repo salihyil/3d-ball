@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { SetNicknameModal } from './components/Profile/SetNicknameModal';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { useAuth } from './hooks/useAuth';
 import { useSocketManager } from './hooks/useNetwork';
@@ -17,10 +18,17 @@ function SocketSync() {
 }
 
 export default function App() {
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = usePlayerProfile();
+
+  const showSetupModal =
+    !authLoading && !profileLoading && !!user && !!profile && !profile.nickname;
+
   return (
     <>
       <ToastContainer />
       <SocketSync />
+      <SetNicknameModal isOpen={showSetupModal} />
       <Suspense
         fallback={
           <div className="bg-animated">

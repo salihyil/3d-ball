@@ -145,7 +145,10 @@
       "nickname_format": "昵称只能包含字母、数字和下划线",
       "confirm_required": "需要确认密码",
       "passwords_mismatch": "密码不匹配"
-    }
+    },
+    "set_nickname_title": "选择您的昵称",
+    "set_nickname_desc": "请设置昵称以开始游戏。",
+    "save_nickname": "保存昵称"
   },
   "settings": {
     "title": "账户设置",

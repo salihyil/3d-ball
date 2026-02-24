@@ -145,7 +145,10 @@
       "nickname_format": "ニックネームには英数字とアンダースコアのみ使用できます",
       "confirm_required": "パスワード確認が必要です",
       "passwords_mismatch": "パスワードが一致しません"
-    }
+    },
+    "set_nickname_title": "ニックネームを選択",
+    "set_nickname_desc": "プレイを開始するにはニックネームを設定してください。",
+    "save_nickname": "ニックネームを保存"
   },
   "settings": {
     "title": "アカウント設定",
