@@ -16,7 +16,7 @@ export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { profile } = usePlayerProfile();
+  const { profile, refreshProfile } = usePlayerProfile();
   const [nickname, setNickname] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [matchDuration, setMatchDuration] = useState(5);
@@ -66,6 +66,7 @@ export default function Home() {
         if (isCancelled) return;
 
         alert(t('profile.purchase_success', 'Purchase confirmed!'));
+        await refreshProfile();
         setIsAvatarModalOpen(true);
       } catch (err) {
         console.error('Purchase confirmation failed:', err);
