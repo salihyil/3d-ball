@@ -58,7 +58,11 @@ export const LeaderboardModal = memo(function LeaderboardModal({
           </h2>
           <button
             className="btn btn-outline"
-            style={{ padding: '6px 12px', fontSize: '12px' }}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              marginRight: '32px',
+            }}
             onClick={refreshLeaderboard}
             disabled={loading}
           >
