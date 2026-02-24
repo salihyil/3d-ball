@@ -27,16 +27,7 @@ export const FieldCustomizer: React.FC<FieldCustomizerProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div
-      className="lobby-customization"
-      style={{
-        marginTop: '0',
-        padding: '16px',
-        background: 'rgba(0,0,0,0.2)',
-        borderRadius: '8px',
-        marginBottom: '16px',
-      }}
-    >
+    <div className="lobby-customization">
       <div
         style={{
           marginBottom: '12px',

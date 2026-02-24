@@ -40,8 +40,34 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="mono">{p.nickname}</span>
               {p.isBot && (
-                <span className="bot-badge" data-testid="bot-badge">
-                  🤖 BOT
+                <span
+                  className="bot-badge"
+                  data-testid="bot-badge"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 8V4H8" />
+                    <rect width="16" height="12" x="4" y="8" rx="2" />
+                    <path d="M2 14h2" />
+                    <path d="M20 14h2" />
+                    <path d="M15 13v2" />
+                    <path d="M9 13v2" />
+                  </svg>
+                  BOT
                 </span>
               )}
               {p.equippedAccessories && p.equippedAccessories.length > 0 && (
@@ -93,7 +119,28 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
             onClick={() => onAddBot(team)}
             data-testid={`add-bot-${team}-btn`}
           >
-            <span style={{ fontSize: '18px' }}>🤖</span>
+            <span
+              style={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 8V4H8" />
+                <rect width="16" height="12" x="4" y="8" rx="2" />
+                <path d="M2 14h2" />
+                <path d="M20 14h2" />
+                <path d="M15 13v2" />
+                <path d="M9 13v2" />
+              </svg>
+            </span>
             <span className="add-bot-text">{t('lobby.add_bot')}</span>
             <div style={{ flex: 1 }} />
             <span className="add-bot-plus">+</span>
@@ -111,7 +158,28 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({
             players.length >= 5
           }
         >
-          {players.length >= 5 ? t('lobby.team_full') : t(`lobby.join_${team}`)}
+          {players.find((p) => p.id === socket.id)?.team === team ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {t(`lobby.join_${team}`)}
+            </span>
+          ) : players.length >= 5 ? (
+            t('lobby.team_full')
+          ) : (
+            t(`lobby.join_${team}`)
+          )}
         </button>
       </div>
     </div>
