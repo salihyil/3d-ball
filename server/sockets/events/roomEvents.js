@@ -3,9 +3,49 @@ import { Room } from '../../Room.js';
 import { rooms } from '../RoomManager.js';
 import { sendChatMessage } from '../utils.js';
 
+export function handleLeaveRoom(io, socket) {
+  if (!socket.roomId) return;
+  const room = rooms.get(socket.roomId);
+  if (!room) {
+    socket.roomId = null;
+    return;
+  }
+
+  const nickname = room.getPlayerNickname(socket.id);
+
+  // When explicitly leaving (or creating/joining a new room), we don't use grace period
+  room.removePlayer(socket.id, true);
+  socket.leave(socket.roomId);
+
+  if (room.isEmpty()) {
+    room.destroy(); // Still call destroy for cleanup
+    rooms.delete(socket.roomId);
+    console.log(`[ROOM] ${socket.roomId} deleted (empty)`);
+    io.to(socket.roomId).emit('room-destroyed');
+  } else {
+    socket.to(socket.roomId).emit('player-left', { nickname });
+    sendChatMessage(
+      io,
+      socket,
+      `${nickname} odadan ayrıldı.`,
+      'system',
+      null,
+      'chat.player_left',
+      { nickname }
+    );
+    io.to(socket.roomId).emit('room-update', room.getRoomInfo());
+  }
+
+  socket.roomId = null;
+}
+
 export function registerRoomEvents(io, socket) {
   // ---- Create Room ----
   socket.on('create-room', (data, callback) => {
+    if (socket.roomId) {
+      handleLeaveRoom(io, socket);
+    }
+
     const { nickname, matchDuration, enableFeatures } = data;
     if (!nickname || nickname.length < 1 || nickname.length > 16) {
       return callback({ roomId: null, error: 'Invalid nickname' });
@@ -41,6 +81,11 @@ export function registerRoomEvents(io, socket) {
   // ---- Join Room ----
   socket.on('join-room', (data, callback) => {
     const { roomId, nickname } = data;
+
+    if (socket.roomId && socket.roomId !== roomId) {
+      handleLeaveRoom(io, socket);
+    }
+
     if (!nickname || nickname.length < 1 || nickname.length > 16) {
       return callback({ success: false, error: 'Invalid nickname' });
     }
@@ -160,36 +205,7 @@ export function registerRoomEvents(io, socket) {
 
   // ---- Leave / Disconnect ----
   socket.on('leave-room', () => {
-    if (!socket.roomId) return;
-    const room = rooms.get(socket.roomId);
-    if (!room) return;
-
-    const nickname = room.getPlayerNickname(socket.id);
-
-    // When explicitly leaving, we don't use grace period
-    room.removePlayer(socket.id, true);
-    socket.leave(socket.roomId);
-
-    if (room.isEmpty()) {
-      room.destroy(); // Still call destroy for cleanup
-      rooms.delete(socket.roomId);
-      console.log(`[ROOM] ${socket.roomId} deleted (empty)`);
-      io.to(socket.roomId).emit('room-destroyed');
-    } else {
-      socket.to(socket.roomId).emit('player-left', { nickname });
-      sendChatMessage(
-        io,
-        socket,
-        `${nickname} odadan ayrıldı.`,
-        'system',
-        null,
-        'chat.player_left',
-        { nickname }
-      );
-      io.to(socket.roomId).emit('room-update', room.getRoomInfo());
-    }
-
-    socket.roomId = null;
+    handleLeaveRoom(io, socket);
   });
 
   // ---- Kick Player ----
