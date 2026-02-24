@@ -294,11 +294,11 @@ export const AvatarModal = memo(function AvatarModal({
             <CanvasErrorBoundary>
               <Canvas
                 shadows
+                dpr={[1, 1.5]}
                 camera={{ position: [0, 1, 5], fov: 40 }}
                 gl={{
                   antialias: true,
                   powerPreference: 'high-performance',
-                  preserveDrawingBuffer: true,
                 }}
               >
                 <color attach="background" args={['#0a0a0f']} />
@@ -520,6 +520,9 @@ export const AvatarModal = memo(function AvatarModal({
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '24px',
+                transform: 'translateZ(0)',
+                willChange: 'transform',
+                backfaceVisibility: 'hidden',
               }}
             >
               {loading && accessories.length === 0 && (
@@ -569,7 +572,7 @@ export const AvatarModal = memo(function AvatarModal({
                         return (
                           <div
                             key={acc.id}
-                            className={`accessory-card glass-card accessory-card-stagger ${
+                            className={`accessory-card accessory-card-stagger ${
                               acc.isOwned
                                 ? acc.is_equipped
                                   ? 'active'
