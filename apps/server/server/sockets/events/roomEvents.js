@@ -13,14 +13,25 @@ async function updatePlayerStats(userId, won, goals) {
       .single();
 
     if (profile) {
+      const { calculateMatchXP, calculateLevel } = await import('@sasi/shared');
+      const gainedXP = calculateMatchXP(won, goals);
+      const newXP = (profile.xp || 0) + gainedXP;
+      const newLevel = calculateLevel(newXP);
+
       await supabaseAdmin
         .from('profiles')
         .update({
           wins: profile.wins + (won ? 1 : 0),
           goals: profile.goals + goals,
           matches_played: profile.matches_played + 1,
+          xp: newXP,
+          level: newLevel,
         })
         .eq('id', userId);
+
+      console.log(
+        `[STATS] Updated ${userId}: +${gainedXP} XP, New Level: ${newLevel}`
+      );
     }
   } catch (err) {
     console.error('[ROOM] Error updating player stats', err);
@@ -70,7 +81,7 @@ export function registerRoomEvents(io, socket) {
       handleLeaveRoom(io, socket);
     }
 
-    const { nickname, matchDuration, enableFeatures } = data;
+    const { nickname, matchDuration, enableFeatures, gameMode } = data;
     if (!nickname || nickname.length < 1 || nickname.length > 16) {
       return callback({ roomId: null, error: 'Invalid nickname' });
     }
@@ -82,6 +93,7 @@ export function registerRoomEvents(io, socket) {
       matchDuration,
       io,
       enableFeatures ?? true,
+      gameMode || 'classic',
       updatePlayerStats
     );
     room.hostToken = hostToken;

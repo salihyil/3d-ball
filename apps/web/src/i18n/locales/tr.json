@@ -16,6 +16,9 @@
     "nickname_placeholder": "Takma ad girin...",
     "duration_label": "Maç Süresi",
     "duration_minutes": "{{count}} Dakika",
+    "mode_label": "Maç Modu",
+    "mode_classic": "Klasik",
+    "mode_chaos": "Kaos 🔥",
     "create_room": "⚽ Oda Kur",
     "or_join": "veya mevcut olana katıl",
     "room_code_placeholder": "Oda kodu...",
@@ -82,10 +85,24 @@
       "rocket_desc": "Bir sonraki vuruşta devasa güç",
       "frozen": "Dondu!",
       "frozen_desc": "Buzun içinde kaldın!",
+      "gravity": "Yerçekimi Kuyusu",
+      "gravity_desc": "Etraftaki topları çeker",
+      "speed": "Hız İblisi",
+      "speed_desc": "Artırılmış hareket hızı",
+      "ghost": "Hayalet Modu",
+      "ghost_desc": "Engellerin içinden geç",
+      "shockwave": "Şok Dalgası",
+      "shockwave_desc": "Her şeyi uzağa fırlat!",
       "generic": "Güçlendirici",
       "generic_desc": "Özel efekt aktif"
     },
-    "host_disconnected_desc": "Kurucu beklenmedik bir şekilde oyundan ayrıldı veya bağlantısı koptu. Oda kapatıldı."
+    "host_disconnected_desc": "Kurucu beklenmedik bir şekilde oyundan ayrıldı veya bağlantısı koptu. Oda kapatıldı.",
+    "missions_title": "Günlük Görevler"
+  },
+  "missions": {
+    "first_win": "İlk Galibiyet",
+    "sniper": "Keskin Nişancı",
+    "marathon": "Maratoncu"
   },
   "chat": {
     "player_joined": "{{nickname}} odaya katıldı.",
@@ -106,9 +123,17 @@
       "hat": "Şapkalar",
       "aura": "Auralar",
       "decal": "Çıkartmalar",
-      "trail": "İzler",
-      "goal_explosion": "Gol Patlamaları",
-      "player_title": "Oyuncu Ünvanları"
+      "trail": "Hareket İzleri",
+      "goal_explosion": "Gol Efektleri",
+      "player_title": "Oyuncu Unvanları"
+    },
+    "items": {
+      "kings_crown": "Kral Tacı",
+      "wizard_hat": "Büyücü Şapkası",
+      "rainbow_trail": "Gökkuşağı İzi",
+      "emerald_trail": "Zümrüt İzi",
+      "electric_aura": "Elektrik Aurası",
+      "void_aura": "Boşluk Aurası"
     },
     "settings": "Ayarlar"
   },

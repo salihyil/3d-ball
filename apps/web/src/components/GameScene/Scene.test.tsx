@@ -1,6 +1,6 @@
+import type { GameSnapshot, RoomInfo } from '@sasi/shared';
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { GameSnapshot, RoomInfo } from '@sasi/shared';
 import GameScene from './Scene';
 
 // Mock all sub-components to simplify testing the orchestration
@@ -45,6 +45,7 @@ describe('GameScene Component', () => {
       gameState: 'playing',
       enableFeatures: true,
       players: [],
+      gameMode: 'classic',
     };
   });
 

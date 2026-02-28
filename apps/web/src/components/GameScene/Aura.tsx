@@ -24,21 +24,44 @@ export const Aura = memo(({ id, team }: AuraProps) => {
     }
   });
 
-  if (id === 'e1b2c3d4-0000-4000-8000-000000000001') {
-    // Aura Saturn Rings ID
-    const auraColor = team === 'blue' ? '#00f2ff' : '#ff3300';
-    const accentColor = team === 'blue' ? '#ff00ea' : '#ffaa00';
+  // Electric Aura ID: a2d3e4f5-6a7b-49ac-b1d2-e3f4a5b6c7d8
+  const isElectricAura = id === 'a2d3e4f5-6a7b-49ac-b1d2-e3f4a5b6c7d8';
+
+  // Void Aura ID: b3e4f5a6-7b8c-40ad-b1e2-f3a4b5c6d7e8
+  const isVoidAura = id === 'b3e4f5a6-7b8c-40ad-b1e2-f3a4b5c6d7e8';
+
+  if (
+    id === 'e1b2c3d4-0000-4000-8000-000000000001' ||
+    isElectricAura ||
+    isVoidAura
+  ) {
+    // Aura Saturn Rings ID or New Auras
+    let auraColor = team === 'blue' ? '#00f2ff' : '#ff3300';
+    let accentColor = team === 'blue' ? '#ff00ea' : '#ffaa00';
+    let opacity1 = 0.6;
+    const opacity2 = 0.4 + Math.sin(Date.now() * 0.002) * 0.1;
+
+    if (isElectricAura) {
+      auraColor = '#ffff00';
+      accentColor = '#ffffff';
+      opacity1 = 0.8;
+    } else if (isVoidAura) {
+      auraColor = '#220044';
+      accentColor = '#000000';
+      opacity1 = 0.9;
+    }
 
     return (
       <group ref={groupRef}>
         <mesh ref={ring1Ref}>
-          <torusGeometry args={[1.5, 0.05, 16, 64]} />
+          <torusGeometry args={[1.5, isElectricAura ? 0.08 : 0.05, 16, 64]} />
           <meshStandardMaterial
             color={auraColor}
             emissive={auraColor}
-            emissiveIntensity={2}
+            emissiveIntensity={isElectricAura ? 4 : 2}
             transparent
-            opacity={0.6}
+            opacity={opacity1}
+            depthWrite={false}
           />
         </mesh>
         <mesh ref={ring2Ref} rotation={[Math.PI / 2, 0, 0]}>
@@ -46,9 +69,10 @@ export const Aura = memo(({ id, team }: AuraProps) => {
           <meshStandardMaterial
             color={accentColor}
             emissive={accentColor}
-            emissiveIntensity={1.5}
+            emissiveIntensity={isElectricAura ? 2 : 1}
             transparent
-            opacity={0.4}
+            opacity={opacity2}
+            depthWrite={false}
           />
         </mesh>
       </group>

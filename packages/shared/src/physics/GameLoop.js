@@ -18,6 +18,13 @@ import {
   KICK_FORCE,
   PLAYER_RADIUS,
   PLAYER_SPEED,
+  POWERUP_DURATION_FROZEN,
+  POWERUP_DURATION_GHOST,
+  POWERUP_DURATION_GRAVITY,
+  POWERUP_DURATION_MAGNET,
+  POWERUP_DURATION_SPEED,
+  POWERUP_RADIUS_SHOCKWAVE,
+  SHOCKWAVE_FORCE,
 } from '../types/index.js';
 
 const GOAL_HEIGHT = 3.5;
@@ -33,9 +40,10 @@ const POWERUP_SPAWN_INTERVAL = 10;
 const POWERUP_RADIUS = 1.5;
 
 export class GameLoop {
-  constructor(room, playerData, enableFeatures = true) {
+  constructor(room, playerData, enableFeatures = true, gameMode = 'classic') {
     this.room = room;
     this.enableFeatures = enableFeatures;
+    this.gameMode = gameMode;
     this.interval = null;
     this.paused = false;
     this.tick = 0;
@@ -242,15 +250,15 @@ export class GameLoop {
     if (timeRemaining <= 0) return;
 
     // Powerups
-    this.powerUpSpawnTimer += DT;
-    if (
-      this.powerUpSpawnTimer >= POWERUP_SPAWN_INTERVAL &&
-      Object.keys(this.players).length > 0
-    ) {
-      if (this.powerUps.length < 3) {
-        this._spawnPowerUp();
+    if (this.room.gameState === 'playing') {
+      this.powerUpSpawnTimer += DT;
+      const interval = this.gameMode === 'chaos' ? 3 : POWERUP_SPAWN_INTERVAL;
+      if (this.powerUpSpawnTimer >= interval) {
+        if (this.powerUps.length < 3 && Object.keys(this.players).length > 0) {
+          this._spawnPowerUp();
+        }
+        this.powerUpSpawnTimer = 0;
       }
-      this.powerUpSpawnTimer = 0;
     }
 
     // Update boost pads
@@ -577,6 +585,10 @@ export class GameLoop {
       }
 
       let speed = PLAYER_SPEED;
+      if (player.activePowerUp && player.activePowerUp.type === 'speed') {
+        speed *= 1.8; // Huge speed boost
+      }
+
       if (
         input.boost &&
         player.boostCooldown <= 0 &&
@@ -585,7 +597,11 @@ export class GameLoop {
         player.boostRemaining = BOOST_DURATION;
       }
       if (player.boostRemaining > 0) {
-        speed = BOOST_SPEED;
+        let bSpeed = BOOST_SPEED;
+        if (player.activePowerUp && player.activePowerUp.type === 'speed') {
+          bSpeed *= 1.4; // Even faster boost
+        }
+        speed = bSpeed;
         player.boostRemaining -= DT;
         if (player.boostRemaining <= 0) {
           player.boostCooldown = BOOST_COOLDOWN;
@@ -640,7 +656,10 @@ export class GameLoop {
           const dz = player.position.z - obs.position.z;
           const distSq = dx * dx + dz * dz;
           const minDist = PLAYER_RADIUS + obs.radius;
-          if (distSq < minDist * minDist && distSq > 0) {
+          const isGhost =
+            player.activePowerUp && player.activePowerUp.type === 'ghost';
+
+          if (distSq < minDist * minDist && distSq > 0 && !isGhost) {
             const dist = Math.sqrt(distSq);
             const overlap = minDist - dist;
             const nx = dx / dist;
@@ -740,18 +759,24 @@ export class GameLoop {
     // Apply gravity
     this.ball.velocity.y += GRAVITY * DT;
 
-    // Apply magnet pull
+    // Apply magnet / gravity pull
     for (const [id, player] of Object.entries(this.players)) {
-      if (player.activePowerUp && player.activePowerUp.type === 'magnet') {
+      if (!player.activePowerUp) continue;
+      const type = player.activePowerUp.type;
+
+      if (type === 'magnet' || type === 'gravity') {
         const dx = player.position.x - this.ball.position.x;
         const dy = player.position.y - this.ball.position.y;
         const dz = player.position.z - this.ball.position.z;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < 30 && dist > 0.01) {
-          const pullForce = 40;
-          this.ball.velocity.x += (dx / dist) * pullForce * DT;
-          this.ball.velocity.y += (dy / dist) * pullForce * DT;
-          this.ball.velocity.z += (dz / dist) * pullForce * DT;
+        const maxDist = type === 'gravity' ? 40 : 30;
+        const pullForce = type === 'gravity' ? 80 : 40;
+
+        if (dist < maxDist && dist > 0.01) {
+          const strength = type === 'gravity' ? 1 : 1; // can be distance scaled if desired
+          this.ball.velocity.x += (dx / dist) * pullForce * DT * strength;
+          this.ball.velocity.y += (dy / dist) * pullForce * DT * strength;
+          this.ball.velocity.z += (dz / dist) * pullForce * DT * strength;
         }
       }
     }
@@ -957,12 +982,19 @@ export class GameLoop {
           const dot = dvx * nx + dvy * ny + dvz * nz;
 
           if (dot > 0) {
-            a.velocity.x -= dot * nx * PLAYER_BOUNCE;
-            a.velocity.y -= dot * ny * PLAYER_BOUNCE;
-            a.velocity.z -= dot * nz * PLAYER_BOUNCE;
-            b.velocity.x += dot * nx * PLAYER_BOUNCE;
-            b.velocity.y += dot * ny * PLAYER_BOUNCE;
-            b.velocity.z += dot * nz * PLAYER_BOUNCE;
+            // Apply ghost logic: Skip bounce if either is ghost
+            const eitherGhost =
+              (a.activePowerUp && a.activePowerUp.type === 'ghost') ||
+              (b.activePowerUp && b.activePowerUp.type === 'ghost');
+
+            if (!eitherGhost) {
+              a.velocity.x -= dot * nx * PLAYER_BOUNCE;
+              a.velocity.y -= dot * ny * PLAYER_BOUNCE;
+              a.velocity.z -= dot * nz * PLAYER_BOUNCE;
+              b.velocity.x += dot * nx * PLAYER_BOUNCE;
+              b.velocity.y += dot * ny * PLAYER_BOUNCE;
+              b.velocity.z += dot * nz * PLAYER_BOUNCE;
+            }
           }
         }
       }
@@ -986,13 +1018,65 @@ export class GameLoop {
           if (type === 'freeze') {
             for (const [otherId, other] of Object.entries(this.players)) {
               if (other.team !== player.team) {
-                other.activePowerUp = { type: 'frozen', timeLeft: 3 };
+                other.activePowerUp = {
+                  type: 'frozen',
+                  timeLeft: POWERUP_DURATION_FROZEN,
+                };
               }
             }
           } else if (type === 'magnet') {
-            player.activePowerUp = { type: 'magnet', timeLeft: 5 };
+            player.activePowerUp = {
+              type: 'magnet',
+              timeLeft: POWERUP_DURATION_MAGNET,
+            };
           } else if (type === 'rocket') {
             player.activePowerUp = { type: 'rocket', timeLeft: 8 };
+          } else if (type === 'gravity') {
+            player.activePowerUp = {
+              type: 'gravity',
+              timeLeft: POWERUP_DURATION_GRAVITY,
+            };
+          } else if (type === 'speed') {
+            player.activePowerUp = {
+              type: 'speed',
+              timeLeft: POWERUP_DURATION_SPEED,
+            };
+          } else if (type === 'ghost') {
+            player.activePowerUp = {
+              type: 'ghost',
+              timeLeft: POWERUP_DURATION_GHOST,
+            };
+          } else if (type === 'shockwave') {
+            // Instant AOE Push
+            const explosionPos = player.position;
+            const RADIUS = POWERUP_RADIUS_SHOCKWAVE;
+            const FORCE = SHOCKWAVE_FORCE;
+
+            // Push players
+            for (const [otherId, other] of Object.entries(this.players)) {
+              if (otherId === id) continue; // Don't push self
+              const dx = other.position.x - explosionPos.x;
+              const dy = other.position.y - explosionPos.y;
+              const dz = other.position.z - explosionPos.z;
+              const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+              if (dist < RADIUS && dist > 0.01) {
+                const strength = 1 - dist / RADIUS;
+                other.velocity.x += (dx / dist) * FORCE * strength;
+                other.velocity.y += (dy / dist) * FORCE * strength + 5;
+                other.velocity.z += (dz / dist) * FORCE * strength;
+              }
+            }
+            // Push ball
+            const bdx = this.ball.position.x - explosionPos.x;
+            const bdy = this.ball.position.y - explosionPos.y;
+            const bdz = this.ball.position.z - explosionPos.z;
+            const bdist = Math.sqrt(bdx * bdx + bdy * bdy + bdz * bdz);
+            if (bdist < RADIUS && bdist > 0.01) {
+              const bstrength = 1 - bdist / RADIUS;
+              this.ball.velocity.x += (bdx / bdist) * FORCE * bstrength;
+              this.ball.velocity.y += (bdy / bdist) * FORCE * bstrength + 8;
+              this.ball.velocity.z += (bdz / bdist) * FORCE * bstrength;
+            }
           }
         }
       }
@@ -1094,7 +1178,15 @@ export class GameLoop {
   }
 
   _spawnPowerUp() {
-    const types = ['magnet', 'freeze', 'rocket'];
+    const types = [
+      'magnet',
+      'freeze',
+      'rocket',
+      'gravity',
+      'shockwave',
+      'speed',
+      'ghost',
+    ];
     const type = types[Math.floor(Math.random() * types.length)];
 
     // Random position avoiding edges and goals

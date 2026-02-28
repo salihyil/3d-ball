@@ -14,6 +14,7 @@ export class Room {
     matchDuration,
     io,
     enableFeatures = true,
+    gameMode = 'classic',
     onUpdateStats = null
   ) {
     this.roomId = roomId;
@@ -30,6 +31,7 @@ export class Room {
     this.lastActivity = Date.now();
     this.fieldTexture = '';
     this.hostToken = null;
+    this.gameMode = gameMode;
     this.timers = new Set(); // Track all timeouts for cleanup
   }
 
@@ -282,7 +284,12 @@ export class Room {
       playerData[id] = { team: p.team, isBot: p.isBot };
     }
 
-    this.gameLoop = new GameLoop(this, playerData, this.enableFeatures);
+    this.gameLoop = new GameLoop(
+      this,
+      playerData,
+      this.enableFeatures,
+      this.gameMode
+    );
     this.gameLoop.resetPositions();
 
     // Broadcast navigation signal with countdown data
@@ -429,6 +436,7 @@ export class Room {
       gameState: this.gameState,
       enableFeatures: this.enableFeatures,
       fieldTexture: this.fieldTexture,
+      gameMode: this.gameMode,
     };
   }
 

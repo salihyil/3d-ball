@@ -123,6 +123,14 @@ export const HUD = {
           return '🚀';
         case 'frozen':
           return '❄️';
+        case 'gravity':
+          return '🌀';
+        case 'speed':
+          return '⚡';
+        case 'ghost':
+          return '👻';
+        case 'shockwave':
+          return '💥';
         default:
           return '⭐';
       }
@@ -138,6 +146,14 @@ export const HUD = {
           return '#f97316';
         case 'frozen':
           return '#87ceeb';
+        case 'gravity':
+          return '#4b0082';
+        case 'speed':
+          return '#39ff14';
+        case 'ghost':
+          return '#ffffff';
+        case 'shockwave':
+          return '#ffff00';
         default:
           return '#fbbf24';
       }

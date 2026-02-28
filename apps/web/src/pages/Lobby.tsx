@@ -1,5 +1,6 @@
 import { OrbitControls, Stage } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
+import type { GameSnapshot, RoomInfo, Team } from '@sasi/shared';
 import {
   Suspense,
   useCallback,
@@ -18,7 +19,6 @@ import RoomLink from '../components/Lobby/RoomLink';
 import TeamPanel from '../components/Lobby/TeamPanel';
 import { socket } from '../hooks/useNetwork';
 import { useSoundSettings } from '../hooks/useSoundSettings';
-import type { GameSnapshot, RoomInfo, Team } from '@sasi/shared';
 import { toast } from '../utils/toast';
 
 const SAMPLE_TEXTURES = [
@@ -354,7 +354,21 @@ export default function Lobby() {
                   <span style={{ flex: 1 }} />
                   <span
                     className="label"
-                    style={{ color: 'var(--text-muted)' }}
+                    style={{
+                      color:
+                        room.gameMode === 'chaos'
+                          ? '#ff8c00'
+                          : 'var(--text-muted)',
+                      fontWeight: room.gameMode === 'chaos' ? 700 : 400,
+                    }}
+                  >
+                    {room.gameMode === 'chaos'
+                      ? `🔥 ${t('home.mode_chaos', 'Chaos')}`
+                      : t('home.mode_classic', 'Classic')}
+                  </span>
+                  <span
+                    className="label"
+                    style={{ color: 'var(--text-muted)', marginLeft: '12px' }}
                   >
                     {t('lobby.players_count', { count: room.players.length })}
                   </span>

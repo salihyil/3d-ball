@@ -16,6 +16,8 @@ export type GameState =
   | 'goalScored'
   | 'ended';
 
+export type GameMode = 'classic' | 'chaos';
+
 export interface PlayerInfo {
   id: string;
   nickname: string;
@@ -29,7 +31,15 @@ export interface PlayerInfo {
   isBot?: boolean;
 }
 
-export type PowerUpType = 'magnet' | 'freeze' | 'rocket' | 'frozen';
+export type PowerUpType =
+  | 'magnet'
+  | 'freeze'
+  | 'rocket'
+  | 'gravity'
+  | 'shockwave'
+  | 'speed'
+  | 'ghost'
+  | 'frozen';
 
 export interface PowerUpItem {
   id: string;
@@ -88,6 +98,7 @@ export interface RoomInfo {
   gameState: GameState;
   enableFeatures?: boolean;
   fieldTexture?: string;
+  gameMode: GameMode;
 }
 
 export interface PlayerInput {
@@ -113,7 +124,12 @@ export interface ChatMessage {
 // Socket.IO event types
 export interface ClientToServerEvents {
   'create-room': (
-    data: { nickname: string; matchDuration: number; enableFeatures?: boolean },
+    data: {
+      nickname: string;
+      matchDuration: number;
+      enableFeatures?: boolean;
+      gameMode?: GameMode;
+    },
     cb: (res: { roomId: string; hostToken: string }) => void
   ) => void;
   'join-room': (
@@ -235,6 +251,15 @@ export const CLIENT_SEND_RATE = 20;
 export const MAX_PLAYERS_PER_TEAM = 5;
 export const COUNTDOWN_SECONDS = 3;
 export const GOAL_RESET_SECONDS = 2;
+
+// Power-up Settings
+export const POWERUP_DURATION_MAGNET = 6;
+export const POWERUP_DURATION_GRAVITY = 4;
+export const POWERUP_DURATION_SPEED = 5;
+export const POWERUP_DURATION_GHOST = 3;
+export const POWERUP_DURATION_FROZEN = 3;
+export const POWERUP_RADIUS_SHOCKWAVE = 15;
+export const SHOCKWAVE_FORCE = 35;
 
 // Static field features
 export const FIELD_OBSTACLES: Obstacle[] = [

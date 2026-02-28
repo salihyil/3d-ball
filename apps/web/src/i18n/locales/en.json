@@ -16,6 +16,9 @@
     "nickname_placeholder": "Enter nickname...",
     "duration_label": "Match Duration",
     "duration_minutes": "{{count}} Minutes",
+    "mode_label": "Match Mode",
+    "mode_classic": "Classic",
+    "mode_chaos": "Chaos",
     "create_room": "⚽ Create Room",
     "or_join": "or join existing",
     "room_code_placeholder": "Room code...",
@@ -82,10 +85,24 @@
       "rocket_desc": "Massive force on next hit",
       "frozen": "Frozen!",
       "frozen_desc": "You are stuck in ice!",
+      "gravity": "Gravity Well",
+      "gravity_desc": "Pulls all balls nearby",
+      "speed": "Speed Demon",
+      "speed_desc": "Increased movement speed",
+      "ghost": "Ghost Mode",
+      "ghost_desc": "Pass through everything",
+      "shockwave": "Shockwave",
+      "shockwave_desc": "Push everything away!",
       "generic": "Power-up",
       "generic_desc": "Special effect active"
     },
-    "host_disconnected_desc": "The host has unexpectedly left the game or their connection dropped. The room is now closed."
+    "host_disconnected_desc": "The host has unexpectedly left the game or their connection dropped. The room is now closed.",
+    "missions_title": "Daily Missions"
+  },
+  "missions": {
+    "first_win": "First Victory",
+    "sniper": "Ace Sniper",
+    "marathon": "Marathon Runner"
   },
   "chat": {
     "player_joined": "{{nickname}} joined the room.",
@@ -106,9 +123,17 @@
       "hat": "Hats",
       "aura": "Auras",
       "decal": "Decals",
-      "trail": "Trails",
-      "goal_explosion": "Goal Explosions",
+      "trail": "Movement Trails",
+      "goal_explosion": "Goal Effects",
       "player_title": "Player Titles"
+    },
+    "items": {
+      "kings_crown": "King's Crown",
+      "wizard_hat": "Wizard Hat",
+      "rainbow_trail": "Rainbow Trail",
+      "emerald_trail": "Emerald Trail",
+      "electric_aura": "Electric Aura",
+      "void_aura": "Void Aura"
     },
     "settings": "Settings"
   },

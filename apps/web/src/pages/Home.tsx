@@ -4,8 +4,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import AuthModal from '../components/Auth/AuthModal';
 import LanguageSelector from '../components/LanguageSelector';
 import { LeaderboardModal } from '../components/LeaderboardModal';
+import { DailyMissions } from '../components/Lobby/DailyMissions';
 import { AccountSettingsModal } from '../components/Profile/AccountSettingsModal';
 import { AvatarModal } from '../components/Profile/AvatarModal';
+import { XPBar } from '../components/Profile/XPBar';
 import { useAuth } from '../hooks/useAuth';
 import { socket } from '../hooks/useNetwork';
 import { usePlayerProfile } from '../hooks/usePlayerProfile';
@@ -21,6 +23,7 @@ export default function Home() {
   const [nickname, setNickname] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [matchDuration, setMatchDuration] = useState(5);
+  const [gameMode, setGameMode] = useState<'classic' | 'chaos'>('classic');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -89,7 +92,7 @@ export default function Home() {
     return () => {
       isCancelled = true;
     };
-  }, [t, location.search]);
+  }, [t, location.search, refreshProfile]);
 
   useEffect(() => {
     if (user?.email) {
@@ -123,7 +126,7 @@ export default function Home() {
 
     socket.emit(
       'create-room',
-      { nickname: nickname.trim(), matchDuration },
+      { nickname: nickname.trim(), matchDuration, gameMode },
       (res: { roomId: string; hostToken?: string }) => {
         setLoading(false);
         if (res.roomId) {
@@ -135,7 +138,7 @@ export default function Home() {
         }
       }
     );
-  }, [nickname, matchDuration, navigate, t]);
+  }, [nickname, matchDuration, gameMode, navigate, t]);
 
   const handleJoin = useCallback(() => {
     if (!nickname.trim()) {
@@ -294,6 +297,8 @@ export default function Home() {
             {t('home.subtitle')}
           </p>
 
+          {user && <XPBar />}
+
           <div
             className="glass-card animate-in animate-in-delay-2"
             style={{ padding: '32px' }}
@@ -338,6 +343,39 @@ export default function Home() {
                     {t('home.duration_minutes', { count: 10 })}
                   </option>
                 </select>
+              </div>
+
+              <div>
+                <label className="label">
+                  {t('home.mode_label', 'Game Mode')}
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    className={`btn ${gameMode === 'classic' ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ flex: 1, fontSize: '13px', padding: '8px' }}
+                    onClick={() => setGameMode('classic')}
+                  >
+                    {t('home.mode_classic', 'Classic')}
+                  </button>
+                  <button
+                    className={`btn ${gameMode === 'chaos' ? 'btn-primary' : 'btn-outline'}`}
+                    style={{
+                      flex: 1,
+                      fontSize: '13px',
+                      padding: '8px',
+                      ...(gameMode === 'chaos'
+                        ? {
+                            background:
+                              'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
+                            border: 'none',
+                          }
+                        : {}),
+                    }}
+                    onClick={() => setGameMode('chaos')}
+                  >
+                    🔥 {t('home.mode_chaos', 'Chaos')}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -388,6 +426,8 @@ export default function Home() {
               ) : null}
             </div>
           </div>
+
+          {user && <DailyMissions />}
         </div>
       </div>
     </>

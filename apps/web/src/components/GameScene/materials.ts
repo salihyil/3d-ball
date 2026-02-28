@@ -1,5 +1,5 @@
-import * as THREE from 'three';
 import { BALL_RADIUS, PLAYER_RADIUS } from '@sasi/shared';
+import * as THREE from 'three';
 
 // ---- Colors ----
 export const BLUE_COLOR = new THREE.Color(0x3b82f6);
@@ -78,6 +78,28 @@ export const createPowerUpMaterials = () => ({
     emissiveIntensity: 0.5,
     transparent: true,
     opacity: 0.5,
+  }),
+  gravity: new THREE.MeshStandardMaterial({
+    color: 0x4b0082,
+    emissive: 0x4b0082,
+    emissiveIntensity: 0.8,
+  }),
+  speed: new THREE.MeshStandardMaterial({
+    color: 0x39ff14,
+    emissive: 0x39ff14,
+    emissiveIntensity: 0.8,
+  }),
+  ghost: new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xd1d1d1,
+    emissiveIntensity: 0.4,
+    transparent: true,
+    opacity: 0.4,
+  }),
+  shockwave: new THREE.MeshStandardMaterial({
+    color: 0xffff00,
+    emissive: 0xffff00,
+    emissiveIntensity: 1.0,
   }),
 });
 
